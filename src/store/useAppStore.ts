@@ -58,6 +58,11 @@ type AppState = {
   setSettingsSection: (section: SettingsSection) => void;
 };
 
+type PersistedAppState = Pick<
+  AppState,
+  "profile" | "conversations" | "activeConversationId" | "providerId" | "modelId" | "theme"
+>;
+
 /**
  * Storage inert, folosit doar pe server (vezi `storage` mai jos).
  * DE CE nu aruncă erori: pe server nu e nimic de salvat și nimic de citit — trebuie doar să
@@ -185,7 +190,20 @@ export const useAppStore = create<AppState>()(
        * Când profilul primește un câmp nou, starea salvată pe calculatorul cuiva va fi veche.
        * Cu `version` + `migrate` avem unde trata cazul, în loc să crape aplicația pe date vechi.
        */
-      version: 2
+      version: 2,
+
+      migrate: (persistedState, version) => {
+        const state = persistedState as PersistedAppState;
+
+        if (version < 2) {
+          return {
+            ...state,
+            conversations: state.conversations.map(({ id, title, createdAt }) => ({ id, title, createdAt }))
+          };
+        }
+
+        return state;
+      }
     }
   )
 );
