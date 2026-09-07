@@ -18,14 +18,14 @@
  * răspunsul real al providerului, iar `buildMockReply` va fi înlocuit de streaming-ul din
  * `/api/chat`. Fișierul ăsta e singurul care trebuie atins.
  */
-import type { Conversation, Message, Profile } from "@/lib/types";
+import type { Conversation } from "@/lib/types";
 
 /**
  * DE CE id-uri scrise de mână, și nu `crypto.randomUUID()`:
  * datele de start trebuie să fie identice la fiecare pornire. Cu id-uri aleatoare, starea
  * salvată în `localStorage` nu s-ar mai potrivi cu datele proaspete după un refresh.
  */
-export const mockConversations: Conversation[] = [
+const mockConversationsWithMessages = [
   {
     id: "conv-tranzitie-ai",
     title: "Ce-mi lipsește pentru AI engineer",
@@ -176,28 +176,11 @@ Cu experiența ta de backend, la a doua și a treia ești deja acasă. Prima ți
 ];
 
 /**
- * Răspunsul simulat al asistentului.
- *
- * DE CE simulăm un răspuns în loc să nu facem nimic la trimitere:
- * fără el nu am putea construi (și verifica) indicatorul „scrie…", butonul de stop și
- * derularea automată a listei. Toate stările astea trebuie să existe ÎNAINTE de datele reale,
- * altfel le descoperim lipsă exact când depanăm streaming-ul.
- *
- * DE CE răspunsul spune explicit că e simulat:
- * ca nimeni să nu creadă, nici la curs nici mai târziu, că aplicația vorbește deja cu un model.
- * La Faza 3 funcția asta dispare, iar textul vine prin streaming din `/api/chat`.
+ * Sidebar-ul are nevoie numai de identitatea conversației.
+ * Mesajele demonstrate mai sus au servit Fazei 2; mesajele vii sunt acum deținute de `useChat`.
  */
-export function buildMockReply(userMessage: string, profile: Profile): Message {
-  return {
-    id: crypto.randomUUID(),
-    role: "assistant",
-    content: `_Răspuns simulat — aplicația nu vorbește încă cu niciun model de limbaj._
-
-Am primit: „${userMessage.trim()}"
-
-Când agentul va fi conectat (Faza 3), aici va apărea răspunsul real, scris token cu token, construit din profilul tău: **${profile.stack}**, cu obiectivul „${profile.goal}".
-
-Până atunci, interfața e completă: poți naviga prin conversații, le poți redenumi sau șterge, îți poți edita profilul și schimba tema — totul din preferințe.`,
-    createdAt: new Date().toISOString()
-  };
-}
+export const mockConversations: Conversation[] = mockConversationsWithMessages.map(({ id, title, createdAt }) => ({
+  id,
+  title,
+  createdAt
+}));

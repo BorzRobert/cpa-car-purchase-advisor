@@ -61,6 +61,7 @@ Everything under `docs/` is written in Romanian — it is for the user.
 - **Zustand + `persist`** for app state, in `src/store/useAppStore.ts`, storage key `skillforge-app`. Ephemeral state (loading status, errors, open dialogs) is excluded from persistence via `partialize`.
 - **Vercel AI SDK** for streaming and provider abstraction (from the agent phase).
 - LLM calls happen **only** inside Route Handlers. Default provider: **Anthropic**; second: OpenAI. Provider choice stays behind one abstraction — no provider SDK calls scattered across the codebase.
+- The active conversation's messages and request state belong only to `useChat` in the chat client component; Zustand persists only conversation-list metadata (`id`, title, selected id). Never duplicate active messages in the store, and never call a model from client code.
 - Persistence: `localStorage` first, **Supabase** later.
 
 ## 5.1 UI rules

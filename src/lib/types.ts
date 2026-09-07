@@ -39,18 +39,10 @@ export type Profile = {
   goal: string;
 };
 
-export type Message = {
-  id: string;
-  role: Role;
-  content: string;
-  createdAt: string;
-};
-
 export type Conversation = {
   id: string;
   title: string;
   createdAt: string;
-  messages: Message[];
 };
 
 /**
@@ -82,11 +74,3 @@ export type ProviderInfo = {
   available: boolean;
   models: ProviderModel[];
 };
-
-/**
- * Starea conversației în curs.
- * DE CE o declarăm acum, fără streaming real: din ea se aprind indicatorul „scrie…", butonul
- * de stop și alerta de eroare. La Faza 3 aceleași stări vor fi conduse de răspunsul real al
- * providerului, nu de un `setTimeout` — restul UI-ului nu va trebui rescris.
- */
-export type ChatStatus = "idle" | "streaming" | "error";

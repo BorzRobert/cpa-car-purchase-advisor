@@ -2,7 +2,7 @@
 
 > Acest fișier este **sursa de adevăr** pentru ce construim. Orice schimbare de direcție se scrie AICI, nu doar în conversație. Vezi [Cum se schimbă cerințele](#9-cum-se-schimbă-cerințele).
 >
-> Ultima actualizare: 2026-09-07 · Faza curentă: **Faza 2.1 — demonstrație de streaming** (livrată)
+> Ultima actualizare: 2026-09-07 · Faza curentă: **Faza 3 — Agentul: apel la LLM și streaming** (livrată)
 >
 > Numerotarea fazelor din acest fișier e a proiectului. Materialul de curs numără separat pașii de UI („primul pas de interfață"); când cele două diferă, numerotarea de aici e cea validă.
 
@@ -183,7 +183,7 @@ Regula de lucru a cursului: **un concept nou pe fază**. Ce nu e listat într-o 
 
 ---
 
-### Faza 3 — Agentul: apel la LLM și streaming
+### Faza 3 — Agentul: apel la LLM și streaming _(livrată)_
 
 **Scop:** primul răspuns real de model în interfață, cu cheia în siguranță pe server.
 
@@ -194,6 +194,7 @@ Regula de lucru a cursului: **un concept nou pe fază**. Ce nu e listat într-o 
 - cheia din `ANTHROPIC_API_KEY`, citită doar pe server;
 - tratarea a trei erori: cheie lipsă/invalidă, provider indisponibil, limită de rate;
 - `docs/anthropic/README.md` — pașii manuali (cont, generare cheie, variabilă, costuri), plus rândul din indexul din `docs/README.md`.
+- mesajele conversației deschise sunt deținute de `useChat`; store-ul persistent păstrează numai lista de conversații (`id`, titlu, selecție), ca fluxul SSE să aibă o singură sursă de adevăr.
 
 **Nu intră:** profil, memorie, al doilea provider, unelte.
 

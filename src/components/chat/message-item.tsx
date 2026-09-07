@@ -20,11 +20,15 @@ import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import { cn } from "@/lib/utils";
-import type { Message } from "@/lib/types";
+import type { UIMessage } from "ai";
 
-export function MessageItem({ message, userInitials }: { message: Message; userInitials: string }) {
+export function MessageItem({ message, userInitials }: { message: UIMessage; userInitials: string }) {
   const isUser = message.role === "user";
   const [copied, setCopied] = useState(false);
+  const text = message.parts
+    .filter(part => part.type === "text")
+    .map(part => part.text)
+    .join("");
 
   /**
    * DE CE copierea are nevoie de `try/catch`:
@@ -33,7 +37,7 @@ export function MessageItem({ message, userInitials }: { message: Message; userI
    */
   async function handleCopy() {
     try {
-      await navigator.clipboard.writeText(message.content);
+      await navigator.clipboard.writeText(text);
       setCopied(true);
       toast.success("Mesaj copiat");
       setTimeout(() => setCopied(false), 1500);
@@ -64,7 +68,7 @@ export function MessageItem({ message, userInitials }: { message: Message; userI
             isUser ? "rounded-br-sm bg-primary text-primary-foreground" : "rounded-bl-sm bg-muted"
           )}
         >
-          {message.content}
+          {text}
 
           <Tooltip>
             <TooltipTrigger

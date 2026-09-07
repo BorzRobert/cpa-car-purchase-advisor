@@ -18,10 +18,10 @@ import { ScrollArea } from "@/components/ui/scroll-area";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { MessageItem } from "@/components/chat/message-item";
-import type { ChatStatus, Message } from "@/lib/types";
+import type { ChatStatus, UIMessage } from "ai";
 
 type MessageListProps = {
-  messages: Message[];
+  messages: UIMessage[];
   status: ChatStatus;
   userInitials: string;
   isLoading: boolean;
@@ -38,7 +38,7 @@ export function MessageList({ messages, status, userInitials, isLoading }: Messa
    */
   useEffect(() => {
     bottomRef.current?.scrollIntoView({ behavior: "smooth", block: "end" });
-  }, [messages.length, status]);
+  }, [messages, status]);
 
   return (
     <ScrollArea className="flex-1">
@@ -48,7 +48,7 @@ export function MessageList({ messages, status, userInitials, isLoading }: Messa
         {!isLoading &&
           messages.map(message => <MessageItem key={message.id} message={message} userInitials={userInitials} />)}
 
-        {status === "streaming" && <TypingIndicator />}
+        {(status === "submitted" || status === "streaming") && <TypingIndicator />}
 
         {/* Ancoră invizibilă pentru derulare. Mai fiabilă decât calculul manual al lui scrollTop. */}
         <div ref={bottomRef} />

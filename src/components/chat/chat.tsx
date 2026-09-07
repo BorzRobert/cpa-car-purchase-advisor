@@ -13,8 +13,10 @@
  * Acțiunile pe conversație stau în sidebar, pe fiecare rând.
  */
 
-import { useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { AlertCircle } from "lucide-react";
+import { useChat } from "@ai-sdk/react";
+import { DefaultChatTransport } from "ai";
 import { Alert, AlertAction, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Button } from "@/components/ui/button";
 import { ChatInput } from "@/components/chat/chat-input";
@@ -32,27 +34,60 @@ function getInitials(name: string): string {
     .join("");
 }
 
+function getChatErrorMessage(error: Error): string {
+  try {
+    const response: unknown = JSON.parse(error.message);
+    if (
+      response &&
+      typeof response === "object" &&
+      "error" in response &&
+      (response as { error?: unknown }).error === "Cheia nu e configurată."
+    ) {
+      return "Cheia nu e configurată.";
+    }
+  } catch {
+    // Un stream întrerupt nu trimite neapărat JSON; detaliile lui nu sunt pentru utilizator.
+  }
+
+  return "Modelul nu poate răspunde acum. Verifică cheia, modelul și limita de utilizare.";
+}
+
 export function Chat() {
   const [draft, setDraft] = useState("");
   const composerWrapperRef = useRef<HTMLDivElement>(null);
+  const creatingConversationRef = useRef(false);
 
   const hydrated = useStoreHydration();
   const profile = useAppStore(state => state.profile);
-  const conversations = useAppStore(state => state.conversations);
   const activeConversationId = useAppStore(state => state.activeConversationId);
-  const status = useAppStore(state => state.status);
-  const errorMessage = useAppStore(state => state.errorMessage);
-  const sendMessage = useAppStore(state => state.sendMessage);
-  const stopStreaming = useAppStore(state => state.stopStreaming);
-  const dismissError = useAppStore(state => state.dismissError);
+  const createConversation = useAppStore(state => state.createConversation);
 
-  const activeConversation = conversations.find(conversation => conversation.id === activeConversationId) ?? null;
+  const { messages, status, sendMessage, stop, error, setMessages, clearError } = useChat({
+    transport: new DefaultChatTransport({ api: "/api/chat" })
+  });
+
   const initials = getInitials(profile.name);
+
+  useEffect(() => {
+    if (creatingConversationRef.current) {
+      creatingConversationRef.current = false;
+      return;
+    }
+    setMessages([]);
+    clearError();
+  }, [activeConversationId, clearError, setMessages]);
 
   function handleSubmit() {
     if (!draft.trim()) return;
-    sendMessage(draft);
+    const text = draft.trim();
+    if (activeConversationId === null) {
+      // Schimbarea id-ului e doar crearea conversației curente, nu navigare spre alta.
+      creatingConversationRef.current = true;
+      createConversation(text);
+    }
+    sendMessage({ text });
     setDraft("");
+    requestAnimationFrame(() => composerWrapperRef.current?.querySelector("textarea")?.focus());
   }
 
   /**
@@ -72,7 +107,7 @@ export function Chat() {
         onValueChange={setDraft}
         onSubmit={handleSubmit}
         status={status}
-        onStop={stopStreaming}
+        onStop={() => void stop()}
       />
     </div>
   );
@@ -84,14 +119,14 @@ export function Chat() {
         o eroare de provider nu trebuie să șteargă de pe ecran ce ai discutat până atunci.
         Vezi problema ȘI contextul, deci poți reîncerca fără să pierzi nimic.
       */}
-      {status === "error" && errorMessage && (
+      {status === "error" && error && (
         <div className="mx-auto w-full max-w-3xl px-4 pt-4">
           <Alert variant="destructive">
             <AlertCircle />
             <AlertTitle>Răspunsul nu a putut fi generat</AlertTitle>
-            <AlertDescription>{errorMessage}</AlertDescription>
+            <AlertDescription>{getChatErrorMessage(error)}</AlertDescription>
             <AlertAction>
-              <Button variant="ghost" size="sm" onClick={dismissError}>
+              <Button variant="ghost" size="sm" onClick={clearError}>
                 Am înțeles
               </Button>
             </AlertAction>
@@ -99,14 +134,9 @@ export function Chat() {
         </div>
       )}
 
-      {activeConversation && activeConversation.messages.length > 0 ? (
+      {activeConversationId !== null && messages.length > 0 ? (
         <>
-          <MessageList
-            messages={activeConversation.messages}
-            status={status}
-            userInitials={initials}
-            isLoading={!hydrated}
-          />
+          <MessageList messages={messages} status={status} userInitials={initials} isLoading={!hydrated} />
           {/* Composer-ul lipit jos: zona de mesaje se derulează, cutia rămâne mereu la îndemână. */}
           <div className="border-t bg-background/80 supports-backdrop-filter:backdrop-blur">
             <div className="mx-auto w-full max-w-3xl px-4 py-4">{composer}</div>

@@ -34,7 +34,7 @@ import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip
 import { Badge } from "@/components/ui/badge";
 import { PROVIDERS, PROVIDER_LIST, getModelLabel } from "@/lib/providers";
 import { useAppStore } from "@/store/useAppStore";
-import type { ChatStatus } from "@/lib/types";
+import type { ChatStatus } from "ai";
 
 /** Înălțimea maximă a cutiei de text. Peste ea, textul se derulează în loc să împingă ecranul. */
 const MAX_HEIGHT_PX = 200;
@@ -54,7 +54,7 @@ export function ChatInput({ value, onValueChange, onSubmit, status, onStop }: Ch
   const selectProvider = useAppStore(state => state.selectProvider);
   const setModel = useAppStore(state => state.setModel);
 
-  const isStreaming = status === "streaming";
+  const isResponding = status === "submitted" || status === "streaming";
 
   /**
    * Creșterea în înălțime odată cu textul.
@@ -78,7 +78,7 @@ export function ChatInput({ value, onValueChange, onSubmit, status, onStop }: Ch
   function handleKeyDown(event: React.KeyboardEvent<HTMLTextAreaElement>) {
     if (event.key !== "Enter" || event.shiftKey || event.nativeEvent.isComposing) return;
     event.preventDefault();
-    if (isStreaming || !value.trim()) return;
+    if (isResponding || !value.trim()) return;
     onSubmit();
   }
 
@@ -170,7 +170,7 @@ export function ChatInput({ value, onValueChange, onSubmit, status, onStop }: Ch
             sunt acțiuni care nu pot exista simultan — cât timp răspunsul se scrie, nu ai ce
             trimite. Două butoane ar însemna unul mereu dezactivat, adică zgomot.
           */}
-          {isStreaming ? (
+          {isResponding ? (
             <Button size="icon-sm" variant="secondary" onClick={onStop} aria-label="Oprește răspunsul">
               <Square />
             </Button>
