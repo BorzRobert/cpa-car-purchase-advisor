@@ -2,7 +2,7 @@
 
 > Acest fișier este **sursa de adevăr** pentru ce construim. Orice schimbare de direcție se scrie AICI, nu doar în conversație. Vezi [Cum se schimbă cerințele](#9-cum-se-schimbă-cerințele).
 >
-> Ultima actualizare: 2026-09-02 · Faza curentă: **Faza 2 — interfața aplicației** (livrată)
+> Ultima actualizare: 2026-09-07 · Faza curentă: **Faza 2.1 — demonstrație de streaming** (livrată)
 >
 > Numerotarea fazelor din acest fișier e a proiectului. Materialul de curs numără separat pașii de UI („primul pas de interfață"); când cele două diferă, numerotarea de aici e cea validă.
 
@@ -163,6 +163,23 @@ Regula de lucru a cursului: **un concept nou pe fază**. Ce nu e listat într-o 
 **Nu a intrat (interzis explicit în această fază):** `src/app/api/chat/route.ts`, chei de API, orice SDK de LLM, Supabase, autentificare. Proiectul pornește pe orice laptop, fără configurare.
 
 **Gata când:** `npm run build`, `npm run dev`, `npm run lint` și `npm run format` trec; se poate naviga prin conversații, redenumi, șterge, edita profilul și schimba tema; interfața funcționează la 390px lățime (pe mobil sidebar-ul intră în `Sheet`, deschis din `SidebarTrigger`); aplicația e publicabilă — repo pe GitHub + deploy pe Vercel, versiunea de siguranță dinaintea oricărei integrări.
+
+---
+
+### Faza 2.1 — Demonstrație de streaming server → client _(livrată)_
+
+**Scop:** să vedem, fără model de limbaj, cheie API sau SDK, cum un răspuns pleacă dintr-un Route Handler și apare treptat în interfață.
+
+**Intră:**
+
+- `src/app/api/about/route.ts` — Route Handler Node.js care păstrează descrierea SkillForge într-un singur loc pe server și o trimite ca evenimente SSE `data: <JSON>\n\n`, cu pauze vizibile între bucăți și semnalul final `data: [DONE]`;
+- **Preferințe → Despre aplicație** (`settings/about-form.tsx`) — citește fluxul manual cu `ReadableStream.getReader()` și `TextDecoder`, reconstruiește evenimente SSE care pot traversa mai multe pachete de rețea, arată cursorul de streaming și permite reluarea demonstrației;
+- cererea se oprește cu `AbortController` la închiderea secțiunii; nu există cheie, provider, SDK sau integrare externă;
+- panoul de conținut al preferințelor are înălțime definită și derulare nativă, astfel încât cutia de răspuns derulează intern iar bara cu sursa și „Reia” rămâne la baza panoului.
+
+**Nu intră:** apel către LLM, `src/app/api/chat/route.ts`, chei de API, SDK AI sau persistență nouă.
+
+**Gata când:** deschizi **Preferințe → Despre aplicație** și textul apare treptat de la `/api/about`; „Reia” pornește un flux nou, iar închiderea ferestrei în timpul fluxului nu produce eroare.
 
 ---
 

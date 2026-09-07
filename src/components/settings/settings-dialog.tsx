@@ -18,11 +18,11 @@
  * conține. Prin store, orice buton din aplicație poate deschide direct secțiunea potrivită.
  */
 
-import { Settings, Sparkles, UserRound } from "lucide-react";
+import { Info, Settings, Sparkles, UserRound } from "lucide-react";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
-import { ScrollArea } from "@/components/ui/scroll-area";
 import { Separator } from "@/components/ui/separator";
+import { AboutForm } from "@/components/settings/about-form";
 import { AppearanceForm } from "@/components/settings/appearance-form";
 import { ProfileForm } from "@/components/settings/profile-form";
 import { ProvidersForm } from "@/components/settings/providers-form";
@@ -64,6 +64,13 @@ const SECTIONS: {
     icon: Sparkles,
     description: "Ce model de limbaj folosește agentul.",
     Content: ProvidersForm
+  },
+  {
+    id: "despre",
+    label: "Despre aplicație",
+    icon: Info,
+    description: "Cum ajunge treptat în interfață un răspuns trimis de server.",
+    Content: AboutForm
   }
 ];
 
@@ -112,9 +119,13 @@ export function SettingsDialog() {
           ))}
         </nav>
 
-        {/* Panoul de conținut. Se derulează independent de navigație. */}
-        <ScrollArea className="min-h-0">
-          <div className="flex flex-col gap-6 p-6">
+        {/*
+          DE CE un `div` nativ, nu `ScrollArea`: wrapper-ul intern al Radix se dimensionează
+          după conținut, iar un copil cu `flex-1` nu mai poate ancora bara de jos. Înălțimea
+          definită a acestui panou lasă secțiunii „Despre aplicație” spațiul real disponibil.
+        */}
+        <div className="h-full min-h-0 overflow-y-auto">
+          <div className="flex h-full min-h-0 flex-col gap-6 p-6">
             <div className="flex flex-col gap-1">
               <h2 className="text-lg font-semibold tracking-tight">{active.label}</h2>
               <p className="text-sm text-muted-foreground">{active.description}</p>
@@ -122,7 +133,7 @@ export function SettingsDialog() {
             <Separator />
             <active.Content />
           </div>
-        </ScrollArea>
+        </div>
       </DialogContent>
     </Dialog>
   );
