@@ -14,7 +14,7 @@
 import type { Profile } from "@/lib/types";
 
 export const mockProfile: Profile = {
-  name: "Nicolae",
+  name: "Robert",
   stack: "Java 21, Spring Boot, PostgreSQL, Docker",
   skills: [
     { name: "Java", level: "avansat" },
