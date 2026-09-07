@@ -28,7 +28,7 @@ export default function Home() {
     // composer-ul ar fugi de sub degete pe telefon.
     <SidebarProvider className="h-svh overflow-hidden">
       <AppSidebar />
-      <SidebarInset className="min-w-0 overflow-hidden">
+      <SidebarInset className="min-h-0 min-w-0 overflow-hidden">
         <AppHeader />
         <Chat />
       </SidebarInset>
