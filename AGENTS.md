@@ -36,6 +36,13 @@ The agent writes the code; the manual steps are forgotten immediately if nobody 
 
 Everything under `docs/` is written in Romanian — it is for the user.
 
+## 2.1 Skill-uri reutilizabile
+
+- Skill-urile proiectului stau în `.claude/skills/<nume>/SKILL.md`; acesta este folderul sursă canonic.
+- `.github/skills/<nume>/SKILL.md` este oglinda pentru Copilot. Cele două fișiere trebuie să fie identice.
+- După ce modifici sau adaugi un skill, rulează `sh scripts/sync-skills.sh`; verificarea fără modificări este `sh scripts/sync-skills.sh --check`.
+- Skill-ul `pre-deploy` se rulează înainte de fiecare publicare și verifică build-ul fără `.env.local`, formatarea, cerințele și configurația Vercel.
+
 ## 3. Secrets
 
 - API keys are used **only** in server-side code: Route Handlers (`src/app/api/*/route.ts`) and Server Components. Never in client components, never in a URL, never in logs or in error messages shown to the user, never committed.
@@ -105,6 +112,7 @@ Before reporting a step as finished:
 4. `docs/requirements.md` reflects reality (phase, scope, non-functional requirements);
 5. any new integration has its `docs/<integration>/README.md` and its index row;
 6. the step is explained to the user: what was added and why it was needed.
+7. before publishing, run the `pre-deploy` skill and confirm the Preview and Production checks.
 
 ## 9. These instruction files are generated
 

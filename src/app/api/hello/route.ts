@@ -37,20 +37,15 @@ export async function GET() {
   const greeting = process.env.SKILLFORGE_GREETING;
 
   /**
-   * DE CE tratăm explicit lipsa variabilei, cu 500 și un mesaj clar:
-   * e cea mai frecventă cauză a unui endpoint care „nu merge" — `.env.local` inexistent sau
-   * serverul de dev nepornit după ce a fost creat (variabilele se citesc la pornire).
-   * La `/api/chat`, aceeași ramură va acoperi cheia de API lipsă. Mesajul spune CE variabilă
-   * lipsește, niciodată ce valoare are alta — un mesaj de eroare e un loc din care se scurg secrete.
+   * Lipsa configurării este o stare validă pentru un deploy nou: interfața trebuie să rămână
+   * disponibilă înainte ca variabilele să fie adăugate în platformă.
    */
   if (!greeting) {
-    return Response.json(
-      {
-        ok: false,
-        error: "Lipsește variabila SKILLFORGE_GREETING. Copiază .env.example în .env.local și repornește `npm run dev`."
-      },
-      { status: 500 }
-    );
+    return Response.json({
+      ok: true,
+      providerConfigured: false,
+      message: "Provider neconfigurat. Aplicația poate fi folosită după configurarea variabilelor de mediu."
+    });
   }
 
   /**

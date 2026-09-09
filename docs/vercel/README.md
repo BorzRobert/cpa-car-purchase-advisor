@@ -4,7 +4,7 @@
 
 Găzduiește aplicația SkillForge online: construiește proiectul Next.js la fiecare push pe GitHub și îl servește pe un URL public. Fără ea, aplicația rulează doar pe calculatorul tău, iar „merge la mine" nu poate fi verificat de nimeni.
 
-**Adăugată la:** Faza 2 (interfața pe date inventate) — intenționat **înainte** de orice integrare cu un model de limbaj, ca să existe o versiune de siguranță care se poate publica.
+**Adăugată la:** Faza 4.1 (publicare) — imediat după primul răspuns real de model, ca fiecare funcționalitate următoare să fie verificată pe o aplicație deja publică.
 **Obligatorie / opțională:** opțională pentru dezvoltare, obligatorie pentru a arăta aplicația altcuiva.
 
 ## Cont & chei
@@ -34,9 +34,9 @@ Găzduiește aplicația SkillForge online: construiește proiectul Next.js la fi
 | `SKILLFORGE_GREETING`  | `.env.local`   | NU (fără prefix `NEXT_PUBLIC_`)       |
 | `NEXT_PUBLIC_APP_NAME` | `.env.local`   | DA (prefixul `NEXT_PUBLIC_` = public) |
 
-În producție se configurează în: **Vercel → Project → Settings → Environment Variables**, separat pentru `Production`, `Preview` și `Development`.
+În producție se configurează în: **Vercel → Project → Settings → Environment Variables**, atât pentru `Production`, cât și pentru `Preview`. Valorile din `.env.example` sunt placeholdere; valorile reale nu intră în repo.
 
-Cheile de LLM (`ANTHROPIC_API_KEY`, la Faza 3) se adaugă **doar** acolo, niciodată în repo. După ce adaugi sau schimbi o variabilă, e nevoie de un **redeploy** — variabilele se citesc la build/pornire, nu la fiecare cerere.
+Cheile de LLM (`ANTHROPIC_API_KEY`) se adaugă **doar** acolo, niciodată în repo. Handler-ele citesc variabilele la request, dar deployment-ul existent nu primește automat modificarea: după ce adaugi sau schimbi o variabilă, e nevoie de un **Redeploy**.
 
 ## Pași manuali
 
@@ -44,10 +44,10 @@ Ce nu poate face agentul:
 
 1. **Import proiect:** Vercel → `Add New… → Project` → alege repo-ul de pe GitHub. Framework-ul e detectat automat („Next.js"); comenzile implicite de build sunt corecte, nu le modifica.
 2. **Deploy:** apasă `Deploy` și așteaptă. Primul build durează câteva minute (instalează dependințele de la zero).
-3. **Branch de producție:** Settings → Git → `Production Branch`. Repo-ul acestui proiect folosește `master`, nu `main` — verifică valoarea, altfel push-urile tale ajung doar în `Preview`.
-4. **Protecția URL-ului (opțional):** Settings → Deployment Protection, dacă nu vrei ca aplicația să fie publică.
-5. **Domeniu propriu (opțional):** Settings → Domains.
-6. La fiecare push pe branch-ul de producție, Vercel face automat deploy. Pentru orice altă ramură primești un URL de `Preview` — util ca să arăți o versiune fără s-o publici.
+3. **Branch de producție:** Settings → Git → `Production Branch` → `main`. Push-urile pe `main` devin versiunea publică; orice alt branch primește un URL de `Preview` pentru review.
+4. **Variabile:** Settings → Environment Variables → adaugă fiecare variabilă din `.env.example` pe `Production` și `Preview`. Pentru `ANTHROPIC_API_KEY`, folosește cheia generată în dashboard-ul Anthropic.
+5. **Redeploy:** după adăugarea sau modificarea unei variabile, deschide deployment-ul relevant → meniul `⋯` → `Redeploy`.
+6. La fiecare push pe `main`, Vercel face automat deploy public. Un push pe orice alt branch produce un Preview URL diferit.
 
 ## Cost & limite
 
@@ -58,13 +58,15 @@ Ce nu poate face agentul:
 
 ## Verificare
 
-1. Local, înainte de deploy:
+1. Local, înainte de deploy, mută temporar `.env.local` în afara proiectului și rulează:
    ```bash
    npm run build
    ```
-   Trebuie să treacă. Vercel rulează exact aceeași comandă — un build care cade local va cădea și acolo.
-2. După deploy, deschide URL-ul primit și verifică: ecranul de start apare, lista de conversații e populată, preferințele se deschid, tema se schimbă din General → Appearance.
-3. `https://<proiect>.vercel.app/api/hello` → dacă `SKILLFORGE_GREETING` nu e configurată în Vercel, răspunde cu 500 și mesajul care spune ce variabilă lipsește. E comportamentul corect, nu un bug — și e exact ce vei vedea la Faza 3 dacă uiți cheia de API.
+   Trebuie să treacă fără nicio cheie. Vercel rulează aceeași comandă.
+2. Rulează `npm run format:check` și verifică skill-ul `pre-deploy`.
+3. După deploy, deschide URL-ul primit pe laptop și telefon: ecranul de start apare, lista de conversații e populată, preferințele se deschid, iar tema se schimbă din General → Appearance.
+4. `https://<proiect>.vercel.app/api/hello` → fără `SKILLFORGE_GREETING` răspunde cu JSON `ok: true` și `providerConfigured: false`. Aceasta este starea normală înainte de configurare.
+5. Fă push pe un branch de lucru și confirmă un Preview URL diferit de Production. După push pe `main`, confirmă URL-ul public.
 
 ## Erori frecvente
 
@@ -72,5 +74,5 @@ Ce nu poate face agentul:
 | -------------------------------------------------- | ------------------------------------------------------ | -------------------------------------------------------------- |
 | Build-ul cade cu erori de TypeScript / ESLint      | Vercel rulează build de producție, mai strict ca `dev` | Rulează `npm run build` local și repară înainte de push        |
 | Deploy reușit, dar aplicația arată versiunea veche | Push-ul a mers pe alt branch decât cel de producție    | Settings → Git → Production Branch (`master` la acest proiect) |
-| `500` pe `/api/hello` în producție                 | Variabila de mediu nu e configurată în Vercel          | Settings → Environment Variables, apoi **redeploy**            |
-| O variabilă nouă nu se vede în aplicație           | Variabilele se citesc la build                         | Redeploy după fiecare modificare                               |
+| Aplicația arată „provider neconfigurat”            | Variabila de mediu nu e configurată încă               | Configurează variabila în Production și Preview, apoi Redeploy |
+| O variabilă nouă nu se vede în aplicație           | Deployment-ul existent nu a primit noua configurație   | Redeploy după fiecare modificare                               |

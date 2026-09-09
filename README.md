@@ -4,7 +4,9 @@ Copilot personal de skills și carieră. O aplicație web în centrul căreia st
 
 Se construiește pas cu pas, ca material de curs: chat cu răspuns în streaming, system prompt generat din profil, memorie între sesiuni, unelte pe care agentul le folosește singur și RAG pe notițe proprii. Modelul de limbaj se cheamă **de pe server**, printr-un provider de LLM configurat cu o cheie care nu ajunge niciodată în browser.
 
-**Stadiul actual:** interfața completă, pe date inventate (Faza 2). **Niciun apel către un model de limbaj și nicio cheie de API** — proiectul pornește pe orice laptop, fără configurare. Agentul intră la pasul următor.
+**Stadiul actual:** aplicația are chat cu răspuns real în streaming și este pregătită pentru publicare în Faza 4.1. Fără chei configurate, interfața rămâne disponibilă și afișează starea „provider neconfigurat”.
+
+**Aplicația publicată:** `https://<proiect>.vercel.app` — înlocuiește placeholder-ul cu URL-ul primit după importul proiectului în Vercel.
 
 ## Cum se rulează
 
@@ -19,7 +21,7 @@ Atât. Fișierul `.env.local` e opțional în faza asta — de el are nevoie doa
 cp .env.example .env.local   # completează valorile; fișierul nu se comite
 ```
 
-Variabilele de mediu se citesc la pornirea serverului — după ce modifici `.env.local`, repornește `npm run dev`.
+Variabilele locale se citesc la cerere de către Route Handler; după ce modifici `.env.local`, repornește `npm run dev` pentru mediul local. În Vercel, orice modificare cere Redeploy.
 
 | Comandă                | Ce face                                                   |
 | ---------------------- | --------------------------------------------------------- |

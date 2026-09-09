@@ -2,7 +2,7 @@
 
 > Acest fișier este **sursa de adevăr** pentru ce construim. Orice schimbare de direcție se scrie AICI, nu doar în conversație. Vezi [Cum se schimbă cerințele](#9-cum-se-schimbă-cerințele).
 >
-> Ultima actualizare: 2026-09-09 · Faza curentă: **Faza 4 — Profil și persona** (livrată)
+> Ultima actualizare: 2026-09-09 · Faza curentă: **Faza 4.1 — Publicare pe Vercel** (în lucru)
 >
 > Numerotarea fazelor din acest fișier e a proiectului. Materialul de curs numără separat pașii de UI („primul pas de interfață"); când cele două diferă, numerotarea de aici e cea validă.
 
@@ -86,6 +86,7 @@ Nu sunt detalii cosmetice — fără ele, diferențele dintre proiectele cursan�
 - **Comentariile sunt în română și explică DE CE**, nu ce face codul.
 - **Structura fișierelor:** `src/app/` (rute, un folder per rută), `src/app/api/` (Route Handlers), `src/components/` (componente proprii), `src/components/ui/` (shadcn, nu se editează manual), `src/lib/` (helpere, iar mai târziu agentul, persona, providerele), `docs/`, `scripts/`.
 - **Documentația:** `docs/requirements.md` (acest fișier), `docs/README.md` (indexul + tabelul integrărilor), `docs/<integrare>/README.md` (pașii manuali, după `docs/_template/README.md`). Convențiile pentru agenți: `AGENTS.md`, cu `CLAUDE.md` și `.github/copilot-instructions.md` generate din el prin `scripts/sync-agent-instructions.sh`.
+- **Skill-uri de proiect:** `.claude/skills/` este sursa canonică, iar `.github/skills/` este oglinda citită de Copilot; sincronizarea și verificarea se fac cu `scripts/sync-skills.sh`.
 - **UI:** tot din **Tailwind + shadcn/ui** — zero CSS scris de mână, zero altă bibliotecă de componente. Componentele de UI se adaugă cu `npx shadcn@latest add <nume>`, nu se scriu de mână. **Toate iconițele din `lucide-react`**, singura sursă de iconițe.
 - **Un component per fișier**, cu nume de fișier în `kebab-case` și componentă în `PascalCase`.
 - **Registru, nu lanțuri de `if`:** listele care cresc (providere, secțiuni de preferințe, sugestii, opțiuni de temă) se declară ca date, iar UI-ul iterează peste ele. Așa o intrare nouă nu cere modificări în JSX.
@@ -202,6 +203,26 @@ Regula de lucru a cursului: **un concept nou pe fază**. Ce nu e listat într-o 
 
 ---
 
+### Faza 4.1 — Publicare pe Vercel _(în lucru)_
+
+**Scop:** aplicația devine accesibilă online imediat după primul răspuns real de model, iar fiecare modificare poate fi verificată într-un Preview înainte de a ajunge în Production.
+
+**Intră:**
+
+- repo-ul este pe GitHub și proiectul este importat în Vercel cu detectarea automată Next.js; nu se adaugă `vercel.json` sau comenzi de build cât timp valorile implicite funcționează;
+- fiecare branch primește un URL Preview, iar branch-ul `main` este Production și URL-ul public;
+- variabilele se configurează în Vercel → Project → Settings → Environment Variables, atât pentru `Production`, cât și pentru `Preview`, niciodată în repo;
+- cheile sunt citite numai în handler-ul care are nevoie de ele, la request; lipsa unei chei este starea „provider neconfigurat”, nu o eroare de build sau pornire;
+- după adăugarea sau modificarea unei variabile se face Redeploy, deoarece deployment-ul existent nu primește automat noua configurație;
+- `docs/vercel/README.md` și skill-ul `pre-deploy` documentează pașii repetabili și verificarea înainte de publicare;
+- verificarea include deschiderea URL-ului public pe telefon, un Preview diferit pentru un branch și interfața funcțională fără chei configurate.
+
+**Nu intră:** domeniu propriu, monitorizare, analytics sau alte medii în afara Preview și Production.
+
+**Gata când:** `npm run build` trece cu `.env.local` mutat temporar, `npm run format:check` trece, aplicația publică se deschide fără chei, iar un push pe un branch produce un Preview URL separat de Production.
+
+---
+
 ### Faza 4 — Profil și persona _(livrată)_
 
 **Scop:** răspunsuri în contextul MEU. Aici aplicația încetează să fie un chat generic.
@@ -282,15 +303,15 @@ Regula de lucru a cursului: **un concept nou pe fază**. Ce nu e listat într-o 
 
 ---
 
-### Faza 10 — Deploy și observabilitate
+### Faza 10 — Observabilitate
 
-**Scop:** se vede ce se întâmplă în aplicație. Deploy-ul în sine s-a făcut deja la Faza 2 (versiunea de siguranță, înainte de orice integrare); aici se adaugă ce lipsește.
+**Scop:** se vede ce se întâmplă în aplicație după ce publicarea a fost stabilizată în Faza 4.1.
 
-**Intră:** variabile de mediu configurate în producție pentru toate integrările adăugate între timp, jurnalizarea cererilor de LLM (model, tokeni, cost, latență, erori), tablou simplu de consum, `docs/vercel/README.md`.
+**Intră:** variabile de mediu configurate în producție pentru toate integrările adăugate între timp, jurnalizarea cererilor de LLM (model, tokeni, cost, latență, erori) și tablou simplu de consum.
 
 **Nu intră:** scalare, medii multiple dincolo de minimul necesar, alerte complexe.
 
-**Gata când:** aplicația e accesibilă pe un URL public, iar pentru fiecare răspuns există o înregistrare cu model, tokeni și cost.
+**Gata când:** pentru fiecare răspuns există o înregistrare cu model, tokeni și cost.
 
 ---
 
