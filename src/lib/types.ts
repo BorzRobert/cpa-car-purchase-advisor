@@ -66,11 +66,10 @@ export type ProviderInfo = {
   id: ProviderId;
   label: string;
   description: string;
-  /**
-   * DE CE un provider poate fi „indisponibil":
-   * OpenAI intră abia la Faza 5. Îl arătăm în listă, dezactivat, ca să fie vizibil de la
-   * început că providerul e o piesă schimbabilă — nu o constantă ascunsă în cod.
-   */
-  available: boolean;
   models: ProviderModel[];
+};
+
+export type ProviderAvailability = {
+  configured: boolean;
+  reason?: string;
 };

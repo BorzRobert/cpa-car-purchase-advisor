@@ -52,6 +52,7 @@ Everything under `docs/` is written in Romanian — it is for the user.
 ## 3. Secrets
 
 - API keys are used **only** in server-side code: Route Handlers (`src/app/api/*/route.ts`) and Server Components. Never in client components, never in a URL, never in logs or in error messages shown to the user, never committed.
+- `src/lib/providers.ts` ajunge în browser și nu are voie să atingă `process.env`; cheile și SDK-urile stau în `src/lib/providers.server.ts`, iar `getModel` este singurul loc care instanțiază un SDK de provider.
 - In Next.js a variable reaches the browser **only** if its name starts with `NEXT_PUBLIC_`. That prefix means public — never put a secret behind it. (Same trap as `VITE_*` in Vite projects, which are inlined into the bundle at build time.)
 - Never return a secret's value in an API response. Report at most whether it is configured (`Boolean(process.env.X)`).
 - Every new variable goes into `.env.example` with a placeholder and a one-line comment, and is documented in the relevant `docs/<integration>/README.md`.

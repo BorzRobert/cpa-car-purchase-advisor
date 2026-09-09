@@ -25,6 +25,7 @@ import { Textarea } from "@/components/ui/textarea";
 import {
   DropdownMenu,
   DropdownMenuContent,
+  DropdownMenuGroup,
   DropdownMenuItem,
   DropdownMenuLabel,
   DropdownMenuSeparator,
@@ -35,6 +36,7 @@ import { Badge } from "@/components/ui/badge";
 import { PROVIDERS, PROVIDER_LIST, getModelLabel } from "@/lib/providers";
 import { useAppStore } from "@/store/useAppStore";
 import type { ChatStatus } from "ai";
+import type { ProviderAvailability, ProviderId } from "@/lib/types";
 
 /** Înălțimea maximă a cutiei de text. Peste ea, textul se derulează în loc să împingă ecranul. */
 const MAX_HEIGHT_PX = 200;
@@ -45,12 +47,22 @@ type ChatInputProps = {
   onSubmit: () => void;
   status: ChatStatus;
   onStop: () => void;
+  providerId: ProviderId;
+  modelId: string;
+  providerAvailability: Record<ProviderId, ProviderAvailability> | null;
 };
 
-export function ChatInput({ value, onValueChange, onSubmit, status, onStop }: ChatInputProps) {
+export function ChatInput({
+  value,
+  onValueChange,
+  onSubmit,
+  status,
+  onStop,
+  providerId,
+  modelId,
+  providerAvailability
+}: ChatInputProps) {
   const textareaRef = useRef<HTMLTextAreaElement>(null);
-  const providerId = useAppStore(state => state.providerId);
-  const modelId = useAppStore(state => state.modelId);
   const selectProvider = useAppStore(state => state.selectProvider);
   const setModel = useAppStore(state => state.setModel);
 
@@ -134,32 +146,45 @@ export function ChatInput({ value, onValueChange, onSubmit, status, onStop }: Ch
               {PROVIDER_LIST.map((provider, index) => (
                 <div key={provider.id}>
                   {index > 0 && <DropdownMenuSeparator />}
-                  <DropdownMenuLabel className="flex items-center gap-2">
-                    {provider.label}
-                    {!provider.available && (
-                      <Badge variant="secondary" className="font-normal">
-                        Faza 5
-                      </Badge>
-                    )}
-                  </DropdownMenuLabel>
-                  {provider.available ? (
-                    provider.models.map(model => (
-                      <DropdownMenuItem
-                        key={model.id}
-                        onClick={() => {
-                          if (provider.id !== providerId) selectProvider(provider.id);
-                          setModel(model.id);
-                        }}
-                      >
-                        <span className="flex-1">{model.label}</span>
-                        {provider.id === providerId && model.id === modelId && (
-                          <span className="text-xs text-muted-foreground">activ</span>
-                        )}
-                      </DropdownMenuItem>
-                    ))
-                  ) : (
-                    <DropdownMenuItem disabled>Se adaugă la pasul cu al doilea provider</DropdownMenuItem>
-                  )}
+                  <DropdownMenuGroup>
+                    <DropdownMenuLabel className="flex items-center gap-2">
+                      {provider.label}
+                      {providerAvailability && !providerAvailability[provider.id]?.configured && (
+                        <Badge variant="secondary" className="font-normal">
+                          indisponibil
+                        </Badge>
+                      )}
+                    </DropdownMenuLabel>
+                    {provider.models.map(model => {
+                      const availability = providerAvailability?.[provider.id];
+                      const disabled = availability ? !availability.configured : true;
+                      const item = (
+                        <DropdownMenuItem
+                          key={model.id}
+                          disabled={disabled}
+                          onClick={() => {
+                            if (disabled) return;
+                            if (provider.id !== providerId) selectProvider(provider.id);
+                            setModel(model.id);
+                          }}
+                        >
+                          <span className="flex-1">{model.label}</span>
+                          {provider.id === providerId && model.id === modelId && (
+                            <span className="text-xs text-muted-foreground">activ</span>
+                          )}
+                        </DropdownMenuItem>
+                      );
+
+                      return disabled && availability?.reason ? (
+                        <Tooltip key={model.id}>
+                          <TooltipTrigger render={item} />
+                          <TooltipContent>{availability.reason}</TooltipContent>
+                        </Tooltip>
+                      ) : (
+                        item
+                      );
+                    })}
+                  </DropdownMenuGroup>
                 </div>
               ))}
             </DropdownMenuContent>

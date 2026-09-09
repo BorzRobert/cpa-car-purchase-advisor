@@ -23,6 +23,7 @@ import { ChatInput } from "@/components/chat/chat-input";
 import { EmptyState } from "@/components/chat/empty-state";
 import { MessageList } from "@/components/chat/message-list";
 import { useAppStore, useStoreHydration } from "@/store/useAppStore";
+import type { ProviderAvailability, ProviderId } from "@/lib/types";
 
 /** Inițialele pentru avatar. Extrase o dată, ca să nu se recalculeze la fiecare mesaj din listă. */
 function getInitials(name: string): string {
@@ -37,13 +38,9 @@ function getInitials(name: string): string {
 function getChatErrorMessage(error: Error): string {
   try {
     const response: unknown = JSON.parse(error.message);
-    if (
-      response &&
-      typeof response === "object" &&
-      "error" in response &&
-      (response as { error?: unknown }).error === "Cheia nu e configurată."
-    ) {
-      return "Cheia nu e configurată.";
+    if (response && typeof response === "object" && "error" in response) {
+      const message = (response as { error?: unknown }).error;
+      if (typeof message === "string") return message;
     }
   } catch {
     // Un stream întrerupt nu trimite neapărat JSON; detaliile lui nu sunt pentru utilizator.
@@ -54,24 +51,42 @@ function getChatErrorMessage(error: Error): string {
 
 export function Chat() {
   const [draft, setDraft] = useState("");
+  const [providerAvailability, setProviderAvailability] = useState<Record<ProviderId, ProviderAvailability> | null>(
+    null
+  );
   const composerWrapperRef = useRef<HTMLDivElement>(null);
   const creatingConversationRef = useRef(false);
 
   const hydrated = useStoreHydration();
   const profile = useAppStore(state => state.profile);
   const activeConversationId = useAppStore(state => state.activeConversationId);
+  const providerId = useAppStore(state => state.providerId);
+  const modelId = useAppStore(state => state.modelId);
   const createConversation = useAppStore(state => state.createConversation);
 
   const { messages, status, sendMessage, stop, error, setMessages, clearError } = useChat({
     transport: new DefaultChatTransport({
       api: "/api/chat",
       prepareSendMessagesRequest: ({ messages, body }) => ({
-        body: { ...body, messages, profile: useAppStore.getState().profile }
+        body: {
+          ...body,
+          messages,
+          profile: useAppStore.getState().profile,
+          providerId: useAppStore.getState().providerId,
+          modelId: useAppStore.getState().modelId
+        }
       })
     })
   });
 
   const initials = getInitials(profile.name);
+
+  useEffect(() => {
+    void fetch("/api/providers")
+      .then(response => response.json())
+      .then(data => setProviderAvailability(data as Record<ProviderId, ProviderAvailability>))
+      .catch(() => setProviderAvailability(null));
+  }, []);
 
   useEffect(() => {
     if (creatingConversationRef.current) {
@@ -113,6 +128,9 @@ export function Chat() {
         onSubmit={handleSubmit}
         status={status}
         onStop={() => void stop()}
+        providerId={providerId}
+        modelId={modelId}
+        providerAvailability={providerAvailability}
       />
     </div>
   );

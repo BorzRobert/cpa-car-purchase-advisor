@@ -11,9 +11,8 @@
  * nu e o dată inventată. Id-urile de aici sunt cele reale, pe care le va folosi Route
  * Handler-ul de la Faza 3. Mock-ul se aruncă; registrul rămâne.
  *
- * ATENȚIE: aici nu apare nicio cheie de API. Registrul spune CE modele există; CU CE cheie se
- * apelează e treaba serverului (`process.env.ANTHROPIC_API_KEY`), niciodată a acestui fișier —
- * el ajunge în browser.
+ * ATENȚIE: aici nu apare nicio cheie și nici `process.env`. Registrul ajunge în browser și spune
+ * doar CE modele există; configurarea și SDK-urile sunt responsabilitatea fișierului server-only.
  */
 import type { ProviderId, ProviderInfo } from "@/lib/types";
 
@@ -22,7 +21,6 @@ export const PROVIDERS: Record<ProviderId, ProviderInfo> = {
     id: "anthropic",
     label: "Anthropic",
     description: "Providerul implicit al SkillForge. Se conectează la Faza 3, dintr-un Route Handler.",
-    available: true,
     models: [
       { id: "claude-haiku-4-5", label: "Claude Haiku 4.5" },
       { id: "claude-opus-5", label: "Claude Opus 5" },
@@ -32,11 +30,11 @@ export const PROVIDERS: Record<ProviderId, ProviderInfo> = {
   openai: {
     id: "openai",
     label: "OpenAI",
-    description: "Al doilea provider, pentru comparație de răspunsuri și costuri. Intră la Faza 5.",
-    available: false,
-    // Gol intenționat: modelele se completează la pasul în care integrăm efectiv providerul,
-    // împreună cu `docs/openai/README.md`. Nu inventăm id-uri care s-ar dovedi greșite.
-    models: []
+    description: "Al doilea provider, pentru o a doua perspectivă la mesajul curent.",
+    models: [
+      { id: "gpt-5", label: "GPT-5" },
+      { id: "gpt-5-mini", label: "GPT-5 mini" }
+    ]
   }
 };
 

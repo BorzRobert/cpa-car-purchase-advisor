@@ -14,6 +14,7 @@ Fiecare integrare externă are propriul folder, cu pașii manuali pe care trebui
 | --------- | ------------------------------------------ | -------------------------------------------- |
 | Vercel    | Faza 4.1 — publicare și Preview/Production | [`vercel/README.md`](vercel/README.md)       |
 | Anthropic | Faza 3 — răspuns LLM în streaming          | [`anthropic/README.md`](anthropic/README.md) |
+| OpenAI    | Faza 5 — al doilea provider și comutator   | [`openai/README.md`](openai/README.md)       |
 
 Formatul obligatoriu al unui astfel de fișier: [`_template/README.md`](_template/README.md).
 

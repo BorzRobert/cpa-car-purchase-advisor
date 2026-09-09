@@ -2,7 +2,7 @@
 
 > Acest fișier este **sursa de adevăr** pentru ce construim. Orice schimbare de direcție se scrie AICI, nu doar în conversație. Vezi [Cum se schimbă cerințele](#9-cum-se-schimbă-cerințele).
 >
-> Ultima actualizare: 2026-09-09 · Faza curentă: **Faza 4.1 — Publicare pe Vercel** (în lucru)
+> Ultima actualizare: 2026-09-09 · Faza curentă: **Faza 5 — Al doilea provider** (livrată parțial)
 >
 > Numerotarea fazelor din acest fișier e a proiectului. Materialul de curs numără separat pașii de UI („primul pas de interfață"); când cele două diferă, numerotarea de aici e cea validă.
 
@@ -243,15 +243,17 @@ Regula de lucru a cursului: **un concept nou pe fază**. Ce nu e listat într-o 
 
 ---
 
-### Faza 5 — Al doilea provider și costul
+### Faza 5 — Al doilea provider și costul _(livrată parțial)_
 
 **Scop:** să demonstrăm că providerul e schimbabil și să vedem ce costă fiecare răspuns.
 
-**Intră:** OpenAI ca al doilea provider, în spatele aceleiași abstracții; selector de provider/model în UI, cu implicit din configurația de server; numărul de tokeni și costul estimat per răspuns; `docs/openai/README.md`; posibilitatea de a compara aceeași întrebare pe două providere.
+**Intră acum:** OpenAI ca al doilea provider, în spatele aceleiași abstracții; selector de provider/model în composer, cu Anthropic primul și implicit; registru unic pentru modele; validare server-side și fallback pentru id-uri vechi; disponibilitatea calculată pe server, cu motiv afișat pentru chei lipsă; `docs/openai/README.md` și skill-ul reutilizabil pentru adăugarea altor providere.
+
+**Nu intră încă:** numărul de tokeni, costul estimat per răspuns și comparația de costuri. Acestea rămân un pas separat al fazei și nu trebuie presupuse ca livrate.
 
 **Nu intră:** rutare automată între modele în funcție de cost, cache de răspunsuri.
 
-**Gata când:** schimbi providerul din UI fără să modifici cod, iar costul estimat apare pentru ambele.
+**Gata acum pentru partea parțială:** schimbi providerul și modelul din composer pentru mesajul următor fără să modifici cod; un provider neconfigurat rămâne vizibil și explicat, iar cererea lui este respinsă clar cu `400`. Criteriul costului se verifică doar după livrarea sub-pasului dedicat.
 
 ---
 
