@@ -17,11 +17,14 @@ import { useEffect, useRef, useState } from "react";
 import { AlertCircle } from "lucide-react";
 import { useChat } from "@ai-sdk/react";
 import { DefaultChatTransport } from "ai";
+import { toast } from "sonner";
 import { Alert, AlertAction, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Button } from "@/components/ui/button";
 import { ChatInput } from "@/components/chat/chat-input";
 import { EmptyState } from "@/components/chat/empty-state";
 import { MessageList } from "@/components/chat/message-list";
+import { AppHeader } from "@/components/layout/app-header";
+import { serializeConversationJson, serializeConversationMarkdown } from "@/lib/message-utils";
 import { useAppStore, useStoreHydration } from "@/store/useAppStore";
 import type { ProviderAvailability, ProviderId } from "@/lib/types";
 
@@ -64,7 +67,7 @@ export function Chat() {
   const modelId = useAppStore(state => state.modelId);
   const createConversation = useAppStore(state => state.createConversation);
 
-  const { messages, status, sendMessage, stop, error, setMessages, clearError } = useChat({
+  const { messages, status, sendMessage, stop, regenerate, error, setMessages, clearError } = useChat({
     transport: new DefaultChatTransport({
       api: "/api/chat",
       prepareSendMessagesRequest: ({ messages, body }) => ({
@@ -120,6 +123,42 @@ export function Chat() {
     composerWrapperRef.current?.querySelector("textarea")?.focus();
   }
 
+  function handleRegenerate(messageId: string) {
+    const messageIndex = messages.findIndex(message => message.id === messageId);
+    if (messageIndex < 1 || messages[messageIndex]?.role !== "assistant") return;
+
+    // Tăiem răspunsul înainte de retrimitere ca `regenerate` să înlocuiască bula, nu să adauge una nouă.
+    setMessages(messages.slice(0, messageIndex));
+    clearError();
+    toast.info("Generez din nou răspunsul");
+    void regenerate();
+  }
+
+  function handleClear() {
+    if (!window.confirm("Golești mesajele acestei conversații? Acțiunea nu poate fi anulată.")) return;
+    setMessages([]);
+    clearError();
+    toast.success("Conversația a fost golită");
+  }
+
+  function handleExport(format: "json" | "markdown") {
+    const exportedAt = new Date().toISOString();
+    const isMarkdown = format === "markdown";
+    const content = isMarkdown
+      ? serializeConversationMarkdown(messages, profile, exportedAt)
+      : serializeConversationJson(messages, profile, exportedAt);
+    const blob = new Blob([content], {
+      type: isMarkdown ? "text/markdown;charset=utf-8" : "application/json;charset=utf-8"
+    });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement("a");
+    link.href = url;
+    link.download = `skillforge-${exportedAt.slice(0, 10)}.${isMarkdown ? "md" : "json"}`;
+    link.click();
+    URL.revokeObjectURL(url);
+    toast.success(`Export ${isMarkdown ? "Markdown" : "JSON"} descărcat`);
+  }
+
   const composer = (
     <div ref={composerWrapperRef}>
       <ChatInput
@@ -137,6 +176,7 @@ export function Chat() {
 
   return (
     <div className="flex min-h-0 flex-1 flex-col">
+      <AppHeader onExport={handleExport} onClear={handleClear} canClear={messages.length > 0} />
       {/*
         DE CE alerta stă deasupra conversației, nu în locul ei:
         o eroare de provider nu trebuie să șteargă de pe ecran ce ai discutat până atunci.
@@ -159,7 +199,13 @@ export function Chat() {
 
       {activeConversationId !== null && messages.length > 0 ? (
         <>
-          <MessageList messages={messages} status={status} userInitials={initials} isLoading={!hydrated} />
+          <MessageList
+            messages={messages}
+            status={status}
+            userInitials={initials}
+            isLoading={!hydrated}
+            onRegenerate={handleRegenerate}
+          />
           {/* Composer-ul lipit jos: zona de mesaje se derulează, cutia rămâne mereu la îndemână. */}
           <div className="border-t bg-background/80 supports-backdrop-filter:backdrop-blur">
             <div className="mx-auto w-full max-w-3xl px-4 py-4">{composer}</div>

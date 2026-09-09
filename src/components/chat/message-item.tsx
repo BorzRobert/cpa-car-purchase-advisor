@@ -13,22 +13,25 @@
  * răspuns". Alinierea singură transmite rolul, fără să fie nevoie de etichete mari.
  */
 
-import { useState } from "react";
-import { Check, Copy } from "lucide-react";
+import { Copy, RotateCcw } from "lucide-react";
 import { toast } from "sonner";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
+import { getMessageText } from "@/lib/message-utils";
 import { cn } from "@/lib/utils";
 import type { UIMessage } from "ai";
 
-export function MessageItem({ message, userInitials }: { message: UIMessage; userInitials: string }) {
+type MessageItemProps = {
+  message: UIMessage;
+  userInitials: string;
+  onRegenerate: (messageId: string) => void;
+  canRegenerate: boolean;
+};
+
+export function MessageItem({ message, userInitials, onRegenerate, canRegenerate }: MessageItemProps) {
   const isUser = message.role === "user";
-  const [copied, setCopied] = useState(false);
-  const text = message.parts
-    .filter(part => part.type === "text")
-    .map(part => part.text)
-    .join("");
+  const text = getMessageText(message);
 
   /**
    * DE CE copierea are nevoie de `try/catch`:
@@ -36,11 +39,14 @@ export function MessageItem({ message, userInitials }: { message: UIMessage; use
    * browser. Fără tratare, butonul ar părea pur și simplu stricat, fără nicio explicație.
    */
   async function handleCopy() {
+    if (!navigator.clipboard) {
+      toast.error("Copierea este disponibilă doar pe localhost sau HTTPS.");
+      return;
+    }
+
     try {
       await navigator.clipboard.writeText(text);
-      setCopied(true);
       toast.success("Mesaj copiat");
-      setTimeout(() => setCopied(false), 1500);
     } catch {
       toast.error("Browserul nu a permis copierea în clipboard.");
     }
@@ -70,25 +76,46 @@ export function MessageItem({ message, userInitials }: { message: UIMessage; use
         >
           {text}
 
-          <Tooltip>
-            <TooltipTrigger
-              render={
-                <Button
-                  variant="ghost"
-                  size="icon-xs"
-                  onClick={handleCopy}
-                  aria-label="Copiază mesajul"
-                  className={cn(
-                    "absolute -top-1 opacity-0 transition-opacity group-hover:opacity-100 focus-visible:opacity-100",
-                    isUser ? "-left-9" : "-right-9"
-                  )}
-                />
-              }
-            >
-              {copied ? <Check /> : <Copy />}
-            </TooltipTrigger>
-            <TooltipContent>{copied ? "Copiat" : "Copiază"}</TooltipContent>
-          </Tooltip>
+          {typeof navigator !== "undefined" && navigator.clipboard && (
+            <Tooltip>
+              <TooltipTrigger
+                render={
+                  <Button
+                    variant="ghost"
+                    size="icon-xs"
+                    onClick={() => void handleCopy()}
+                    aria-label="Copiază mesajul"
+                    className={cn(
+                      "absolute -top-1 opacity-0 transition-opacity group-hover:opacity-100 focus-visible:opacity-100",
+                      isUser ? "-left-9" : "-right-9"
+                    )}
+                  />
+                }
+              >
+                <Copy />
+              </TooltipTrigger>
+              <TooltipContent>Copiază</TooltipContent>
+            </Tooltip>
+          )}
+
+          {!isUser && canRegenerate && (
+            <Tooltip>
+              <TooltipTrigger
+                render={
+                  <Button
+                    variant="ghost"
+                    size="icon-xs"
+                    onClick={() => onRegenerate(message.id)}
+                    aria-label="Încearcă din nou răspunsul"
+                    className="absolute -right-9 -bottom-1 opacity-0 transition-opacity group-hover:opacity-100 focus-visible:opacity-100"
+                  />
+                }
+              >
+                <RotateCcw />
+              </TooltipTrigger>
+              <TooltipContent>Mai încearcă</TooltipContent>
+            </Tooltip>
+          )}
         </div>
       </div>
     </div>

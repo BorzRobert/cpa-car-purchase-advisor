@@ -15,10 +15,24 @@
  * câteva luni.
  */
 
+import { Download, Eraser, MoreHorizontal } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger
+} from "@/components/ui/dropdown-menu";
 import { SidebarTrigger } from "@/components/ui/sidebar";
 import { useAppStore } from "@/store/useAppStore";
 
-export function AppHeader() {
+type AppHeaderProps = {
+  onExport: (format: "json" | "markdown") => void;
+  onClear: () => void;
+  canClear: boolean;
+};
+
+export function AppHeader({ onExport, onClear, canClear }: AppHeaderProps) {
   const conversations = useAppStore(state => state.conversations);
   const activeConversationId = useAppStore(state => state.activeConversationId);
 
@@ -29,6 +43,27 @@ export function AppHeader() {
       <SidebarTrigger aria-label="Comută sidebar-ul" />
       {/* `truncate` fiindcă titlul vine din primul mesaj al utilizatorului: poate fi oricât de lung. */}
       <span className="truncate text-sm text-muted-foreground">{activeTitle ?? "Conversație nouă"}</span>
+      <DropdownMenu>
+        <DropdownMenuTrigger
+          render={<Button variant="ghost" size="icon" className="ml-auto" aria-label="Acțiuni conversație" />}
+        >
+          <MoreHorizontal />
+        </DropdownMenuTrigger>
+        <DropdownMenuContent align="end" className="w-48">
+          <DropdownMenuItem onClick={() => onExport("markdown")}>
+            <Download />
+            Exportă Markdown
+          </DropdownMenuItem>
+          <DropdownMenuItem onClick={() => onExport("json")}>
+            <Download />
+            Exportă JSON
+          </DropdownMenuItem>
+          <DropdownMenuItem variant="destructive" disabled={!canClear} onClick={onClear}>
+            <Eraser />
+            Golește conversația
+          </DropdownMenuItem>
+        </DropdownMenuContent>
+      </DropdownMenu>
     </header>
   );
 }

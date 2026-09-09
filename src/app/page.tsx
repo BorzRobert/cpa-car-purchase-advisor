@@ -17,7 +17,6 @@
  */
 import { SidebarInset, SidebarProvider } from "@/components/ui/sidebar";
 import { AppSidebar } from "@/components/layout/app-sidebar";
-import { AppHeader } from "@/components/layout/app-header";
 import { Chat } from "@/components/chat/chat";
 import { SettingsDialog } from "@/components/settings/settings-dialog";
 
@@ -29,7 +28,6 @@ export default function Home() {
     <SidebarProvider className="h-svh overflow-hidden">
       <AppSidebar />
       <SidebarInset className="min-h-0 min-w-0 overflow-hidden">
-        <AppHeader />
         <Chat />
       </SidebarInset>
       <SettingsDialog />

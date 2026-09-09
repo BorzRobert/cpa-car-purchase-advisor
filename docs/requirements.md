@@ -2,7 +2,7 @@
 
 > Acest fișier este **sursa de adevăr** pentru ce construim. Orice schimbare de direcție se scrie AICI, nu doar în conversație. Vezi [Cum se schimbă cerințele](#9-cum-se-schimbă-cerințele).
 >
-> Ultima actualizare: 2026-09-09 · Faza curentă: **Faza 5 — Al doilea provider** (livrată parțial)
+> Ultima actualizare: 2026-09-09 · Faza curentă: **Faza 5 — Al doilea provider și acțiuni pe conversație** (livrată parțial)
 >
 > Numerotarea fazelor din acest fișier e a proiectului. Materialul de curs numără separat pașii de UI („primul pas de interfață"); când cele două diferă, numerotarea de aici e cea validă.
 
@@ -253,6 +253,14 @@ Regula de lucru a cursului: **un concept nou pe fază**. Ce nu e listat într-o 
 
 **Nu intră:** rutare automată între modele în funcție de cost, cache de răspunsuri.
 
+### Sub-pas — Acțiuni pe conversație și export _(livrat)_
+
+**Intră:** reluarea răspunsului, copierea mesajelor, chat nou, golirea confirmată și exportul conversației împreună cu profilul ca JSON și Markdown. Transformările sunt funcții pure în `src/lib/message-utils.ts`, iar ambele formate pornesc din aceeași structură intermediară.
+
+**Nu intră:** export PDF și editarea mesajelor.
+
+**Gata când:** acțiunile operează pe lista `useChat`, reluarea nu lasă un al doilea răspuns, exporturile se deschid ca fișiere valide, iar copierea nu produce crash pe un URL fără context securizat.
+
 **Gata acum pentru partea parțială:** schimbi providerul și modelul din composer pentru mesajul următor fără să modifici cod; un provider neconfigurat rămâne vizibil și explicat, iar cererea lui este respinsă clar cu `400`. Criteriul costului se verifică doar după livrarea sub-pasului dedicat.
 
 ---
@@ -340,6 +348,7 @@ Profilul conține date despre carieră: rol actual, angajator (opțional), skill
 - **Cine le vede:** utilizatorul și providerul de LLM ales de aplicație, deoarece profilul este trimis la fiecare cerere pentru personalizare. Interfața spune explicit acest lucru.
 - **Minimizare:** serverul acceptă doar cele patru câmpuri permise, le curăță și le plafonează înainte de prompt; la această fază nu există fapte reținute sau istoric injectat suplimentar.
 - **Control:** din Faza 4 utilizatorul poate exporta profilul ca JSON și îl poate șterge din preferințe. Ștergerea înseamnă înlocuirea datelor profilului cu un profil gol în starea persistată, nu un marcaj.
+- **Export local:** exportul conversației include și profilul, deci scoate date personale din aplicație într-un fișier pe care utilizatorul îl poate trimite mai departe; interfața trebuie să facă acest conținut explicit.
 - **Risc cunoscut, acceptat până la Faza 9:** browserul poate trimite un profil modificat, iar serverul îl primește ca input neîncredere. Normalizarea reduce injecțiile și datele excesive înainte de prompt, dar nu dovedește identitatea utilizatorului. Riscul este acceptat conștient pentru un singur utilizator, în dezvoltare; nu este acceptabil în producție cu mai mulți utilizatori. La Faza 9 sursa profilului devine baza de date.
 
 ### 6.3 Cost

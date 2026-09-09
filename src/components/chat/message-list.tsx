@@ -25,9 +25,10 @@ type MessageListProps = {
   status: ChatStatus;
   userInitials: string;
   isLoading: boolean;
+  onRegenerate: (messageId: string) => void;
 };
 
-export function MessageList({ messages, status, userInitials, isLoading }: MessageListProps) {
+export function MessageList({ messages, status, userInitials, isLoading, onRegenerate }: MessageListProps) {
   const bottomRef = useRef<HTMLDivElement>(null);
 
   /**
@@ -46,7 +47,15 @@ export function MessageList({ messages, status, userInitials, isLoading }: Messa
         {isLoading ? <MessagesSkeleton /> : null}
 
         {!isLoading &&
-          messages.map(message => <MessageItem key={message.id} message={message} userInitials={userInitials} />)}
+          messages.map((message, index) => (
+            <MessageItem
+              key={message.id}
+              message={message}
+              userInitials={userInitials}
+              onRegenerate={onRegenerate}
+              canRegenerate={message.role === "assistant" && index === messages.length - 1 && status === "ready"}
+            />
+          ))}
 
         {(status === "submitted" || status === "streaming") && <TypingIndicator />}
 
