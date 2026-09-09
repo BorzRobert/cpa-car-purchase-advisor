@@ -63,7 +63,12 @@ export function Chat() {
   const createConversation = useAppStore(state => state.createConversation);
 
   const { messages, status, sendMessage, stop, error, setMessages, clearError } = useChat({
-    transport: new DefaultChatTransport({ api: "/api/chat" })
+    transport: new DefaultChatTransport({
+      api: "/api/chat",
+      prepareSendMessagesRequest: ({ messages, body }) => ({
+        body: { ...body, messages, profile: useAppStore.getState().profile }
+      })
+    })
   });
 
   const initials = getInitials(profile.name);
@@ -143,7 +148,12 @@ export function Chat() {
           </div>
         </>
       ) : (
-        <EmptyState userName={profile.name} onPickSuggestion={handlePickSuggestion} composer={composer} />
+        <EmptyState
+          userName={profile.name}
+          profileGoal={profile.goal}
+          onPickSuggestion={handlePickSuggestion}
+          composer={composer}
+        />
       )}
     </div>
   );

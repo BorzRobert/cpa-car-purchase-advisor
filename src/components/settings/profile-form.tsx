@@ -112,6 +112,29 @@ export function ProfileForm() {
     toast.success("Profil salvat");
   }
 
+  function handleDelete() {
+    if (!window.confirm("Ștergi profilul salvat pe acest dispozitiv?")) return;
+
+    const emptyProfile = { name: "", stack: "", skills: [], goal: "" };
+    setProfile(emptyProfile);
+    setName("");
+    setStack("");
+    setSkillsText("");
+    setGoal("");
+    toast.success("Profil șters de pe acest dispozitiv");
+  }
+
+  function handleExport() {
+    const file = new Blob([JSON.stringify(profile, null, 2)], { type: "application/json" });
+    const url = URL.createObjectURL(file);
+    const link = document.createElement("a");
+    link.href = url;
+    link.download = "skillforge-profil.json";
+    link.click();
+    URL.revokeObjectURL(url);
+    toast.success("Profil exportat");
+  }
+
   return (
     <div className="flex flex-col gap-6">
       <div className="flex flex-col gap-2">
@@ -178,6 +201,21 @@ export function ProfileForm() {
 
       <div className="flex justify-end">
         <Button onClick={handleSave}>Salvează profilul</Button>
+      </div>
+
+      <div className="flex flex-col gap-3 border-t pt-5">
+        <p className="text-xs text-muted-foreground">
+          Profilul stă în <span className="font-mono">localStorage</span> pe acest dispozitiv. La fiecare mesaj, datele
+          profilului sunt trimise providerului de LLM pentru personalizare. Nu sunt salvate pe server în această fază.
+        </p>
+        <div className="flex flex-wrap justify-end gap-2">
+          <Button variant="outline" onClick={handleExport}>
+            Exportă profilul
+          </Button>
+          <Button variant="destructive" onClick={handleDelete}>
+            Șterge profilul de pe acest dispozitiv
+          </Button>
+        </div>
       </div>
     </div>
   );

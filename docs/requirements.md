@@ -2,7 +2,7 @@
 
 > Acest fișier este **sursa de adevăr** pentru ce construim. Orice schimbare de direcție se scrie AICI, nu doar în conversație. Vezi [Cum se schimbă cerințele](#9-cum-se-schimbă-cerințele).
 >
-> Ultima actualizare: 2026-09-07 · Faza curentă: **Faza 3 — Agentul: apel la LLM și streaming** (livrată)
+> Ultima actualizare: 2026-09-09 · Faza curentă: **Faza 4 — Profil și persona** (livrată)
 >
 > Numerotarea fazelor din acest fișier e a proiectului. Materialul de curs numără separat pașii de UI („primul pas de interfață"); când cele două diferă, numerotarea de aici e cea validă.
 
@@ -202,18 +202,19 @@ Regula de lucru a cursului: **un concept nou pe fază**. Ce nu e listat într-o 
 
 ---
 
-### Faza 4 — Profil și persona
+### Faza 4 — Profil și persona _(livrată)_
 
 **Scop:** răspunsuri în contextul MEU. Aici aplicația încetează să fie un chat generic.
 
 **Intră:**
 
-- model de profil: stack curent, skill-uri cu nivel (ex. 1–5), obiectiv, timp disponibil pe săptămână, preferințe de învățare;
+- model de profil: nume, stack curent, skill-uri cu nivel (`începător`, `intermediar`, `avansat`) și obiectiv; timpul disponibil și preferințele de învățare rămân pentru o fază ulterioară;
 - ecran de editare a profilului, salvat în `localStorage`;
-- construirea system prompt-ului („persona") din profil, la fiecare cerere;
-- profilul e trimis de browser la `/api/chat` împreună cu mesajele (serverul nu are încă stare) și e validat pe server;
+- construirea system prompt-ului („persona") din profil, la fiecare cerere, într-un singur fișier server-side;
+- profilul e trimis de browser la `/api/chat` împreună cu mesajele, citit la momentul trimiterii și normalizat pe server;
 - export și ștergere profil (cerință de date personale, §6);
-- în UI se vede că răspunsul a folosit profilul (transparență).
+- în UI se vede obiectivul profilului activ pe ecranul unei conversații noi (transparență);
+- persona are rol, domeniu și guardrails explicite: nu inventează fapte, nu promite angajări sau salarii și nu dă sfaturi juridice sau medicale.
 
 **Nu intră:** istoric persistent al conversațiilor, memorie de fapte, profil pe server.
 
@@ -312,11 +313,11 @@ Nu construim, până când nu apare aici o cerință explicită: aplicație mobi
 
 Profilul conține date despre carieră: rol actual, angajator (opțional), skill-uri, nivel, obiective, timp disponibil. Sunt date personale, chiar dacă nu sunt sensibile legal.
 
-- **Unde stau, pe fază:** Fazele 4–8 → `localStorage`, doar în browserul utilizatorului, pe un singur device. Faza 9 → Supabase, legat de contul lui, protejat prin Row Level Security.
-- **Cine le vede:** utilizatorul. Plus **providerul de LLM**: profilul și faptele reținute sunt trimise la fiecare cerere, ca parte din system prompt. Acest lucru trebuie spus explicit în interfață — utilizatorul trebuie să știe ce iese din aplicație.
-- **Minimizare:** trimitem în context doar ce e relevant pentru întrebare (profil + fapte reținute + ultimele mesaje), nu tot istoricul. Câmpurile opționale (ex. angajator) rămân opționale.
-- **Control:** din Faza 4 utilizatorul poate exporta profilul (JSON) și îl poate șterge complet. Ștergerea înseamnă ștergere reală, nu marcaj.
-- **Risc cunoscut, acceptat până la Faza 9:** cât timp profilul vine de la browser, serverul îl primește ca dată de intrare și îl poate include în system prompt. Este acceptabil pentru un singur utilizator, în dezvoltare; **nu** e acceptabil în producție cu mai mulți utilizatori. La Faza 9 sursa profilului devine baza de date, iar intrarea din browser nu mai e de încredere.
+- **Unde stau, pe fază:** în Faza 4, profilul colectează doar numele, stack-ul actual, skill-urile cu nivel și obiectivul; stă în `localStorage`, doar în browserul utilizatorului, pe un singur dispozitiv. În Fazele 5–8 rămâne așa. Faza 9 îl mută în Supabase, legat de cont și protejat prin Row Level Security.
+- **Cine le vede:** utilizatorul și providerul de LLM ales de aplicație, deoarece profilul este trimis la fiecare cerere pentru personalizare. Interfața spune explicit acest lucru.
+- **Minimizare:** serverul acceptă doar cele patru câmpuri permise, le curăță și le plafonează înainte de prompt; la această fază nu există fapte reținute sau istoric injectat suplimentar.
+- **Control:** din Faza 4 utilizatorul poate exporta profilul ca JSON și îl poate șterge din preferințe. Ștergerea înseamnă înlocuirea datelor profilului cu un profil gol în starea persistată, nu un marcaj.
+- **Risc cunoscut, acceptat până la Faza 9:** browserul poate trimite un profil modificat, iar serverul îl primește ca input neîncredere. Normalizarea reduce injecțiile și datele excesive înainte de prompt, dar nu dovedește identitatea utilizatorului. Riscul este acceptat conștient pentru un singur utilizator, în dezvoltare; nu este acceptabil în producție cu mai mulți utilizatori. La Faza 9 sursa profilului devine baza de date.
 
 ### 6.3 Cost
 

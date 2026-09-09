@@ -43,6 +43,8 @@ Everything under `docs/` is written in Romanian — it is for the user.
 - Never return a secret's value in an API response. Report at most whether it is configured (`Boolean(process.env.X)`).
 - Every new variable goes into `.env.example` with a placeholder and a one-line comment, and is documented in the relevant `docs/<integration>/README.md`.
 - If a key has ever been exposed, say so and have it revoked/regenerated — do not just delete the line.
+- System prompt-ul se construiește doar pe server și numai în `src/lib/system-prompt.ts`; un al doilea loc care compune persona este o eroare, nu o optimizare.
+- Datele venite din browser se normalizează pe server înainte să intre într-un prompt.
 
 ## 4. Course working rhythm
 

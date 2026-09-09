@@ -52,12 +52,13 @@ const SUGGESTIONS = [
 
 type EmptyStateProps = {
   userName: string;
+  profileGoal: string;
   onPickSuggestion: (prompt: string) => void;
   /** Composer-ul, primit ca element: pe ecranul de start el stă între salut și sugestii. */
   composer: React.ReactNode;
 };
 
-export function EmptyState({ userName, onPickSuggestion, composer }: EmptyStateProps) {
+export function EmptyState({ userName, profileGoal, onPickSuggestion, composer }: EmptyStateProps) {
   return (
     // `justify-center` cu un pic de aer în plus sus: ca pe mock, blocul stă puțin peste mijloc,
     // nu perfect centrat — altfel sugestiile ajung prea jos pe ecranele înalte.
@@ -65,6 +66,9 @@ export function EmptyState({ userName, onPickSuggestion, composer }: EmptyStateP
       <div className="flex flex-col items-center gap-3 text-center">
         <span className="text-sm font-medium tracking-wide text-muted-foreground uppercase">SkillForge</span>
         <h1 className="text-3xl font-semibold tracking-tight sm:text-4xl">Salut, {userName}. Ce învățăm astăzi?</h1>
+        <p className="max-w-xl text-sm text-muted-foreground">
+          Profil activ: {profileGoal.trim() || "completează-ți obiectivul din Preferințe"}
+        </p>
       </div>
 
       {composer}
