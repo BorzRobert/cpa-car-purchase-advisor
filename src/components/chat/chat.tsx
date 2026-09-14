@@ -189,6 +189,17 @@ function ChatSession({
     void regenerate();
   }
 
+  function handleEdit(messageId: string, text: string) {
+    if (status !== "ready") return;
+    const messageIndex = messages.findIndex(message => message.id === messageId);
+    if (messageIndex < 0 || messages[messageIndex]?.role !== "user") return;
+
+    // Tăiem și răspunsul vechi: altfel modelul ar primi două continuări contradictorii ale aceleiași întrebări.
+    setMessages(messages.slice(0, messageIndex));
+    clearError();
+    sendMessage({ text });
+  }
+
   function handleClear() {
     if (!window.confirm("Golești mesajele acestei conversații? Acțiunea nu poate fi anulată.")) return;
     setMessages([]);
@@ -261,6 +272,7 @@ function ChatSession({
             userInitials={initials}
             isLoading={!hydrated}
             onRegenerate={handleRegenerate}
+            onEdit={handleEdit}
           />
           {/* Composer-ul lipit jos: zona de mesaje se derulează, cutia rămâne mereu la îndemână. */}
           <div className="border-t bg-background/80 supports-backdrop-filter:backdrop-blur">

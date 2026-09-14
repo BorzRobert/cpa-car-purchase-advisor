@@ -77,6 +77,7 @@ Everything under `docs/` is written in Romanian — it is for the user.
 - **The center of the app stays minimal:** no action bar, and no theme toggle in the header. The theme is changed only in Settings → General → Appearance.
 - **Tema nu stă în store-ul Zustand și nu apare în `partialize`:** este gestionată de `ThemeProvider` cu `createContext` + `useContext`, iar preferința se persistă separat în `localStorage` sub cheia `skillforge-theme`; `skillforge-app` rămâne pentru restul stării aplicației.
 - **Transformările peste mesaje** stau în `src/lib/message-utils.ts` ca funcții pure; extragerea textului din părțile unui mesaj are un singur loc în tot proiectul. Nu adăugăm bară de acțiuni deasupra conversației: acțiunile apar în sidebar, în meniul header-ului sau pe mesaj.
+- **Conținutul venit de la model** se randează printr-un singur component Markdown, refolosit pentru toate mesajele, fără HTML brut: nu activăm pluginuri HTML și nu folosim `dangerouslySetInnerHTML` pe textul modelului.
 - Tailwind v4 needs the shadcn tokens (`--background`, `--foreground`, `--card`, `--primary`, `--muted`, `--border`, `--ring`, `--destructive`, `--sidebar*`) defined on `:root` **and** `.dark`, plus `@custom-variant dark (&:is(.dark *));` and the `@theme inline` block in `src/app/globals.css`. Without them `bg-primary` / `bg-muted` generate nothing and the theme cannot switch — the classic `create-next-app` + shadcn mistake.
 
 ## 6. Code conventions

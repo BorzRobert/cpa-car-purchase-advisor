@@ -23,6 +23,10 @@ cp .env.example .env.local   # completează valorile; fișierul nu se comite
 
 Variabilele locale se citesc la cerere de către Route Handler; după ce modifici `.env.local`, repornește `npm run dev` pentru mediul local. În Vercel, orice modificare cere Redeploy.
 
+### Dependențe pentru răspunsuri
+
+`react-markdown` și `remark-gfm` transformă răspunsurile în Markdown fără să permită HTML brut, iar `react-syntax-highlighter` colorează doar limbajele folosite în chat. Sunt dependențe npm locale, fără cont sau cheie de API.
+
 | Comandă                | Ce face                                                   |
 | ---------------------- | --------------------------------------------------------- |
 | `npm run dev`          | server de dezvoltare (Turbopack)                          |

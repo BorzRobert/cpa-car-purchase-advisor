@@ -26,9 +26,10 @@ type MessageListProps = {
   userInitials: string;
   isLoading: boolean;
   onRegenerate: (messageId: string) => void;
+  onEdit: (messageId: string, text: string) => void;
 };
 
-export function MessageList({ messages, status, userInitials, isLoading, onRegenerate }: MessageListProps) {
+export function MessageList({ messages, status, userInitials, isLoading, onRegenerate, onEdit }: MessageListProps) {
   const bottomRef = useRef<HTMLDivElement>(null);
 
   /**
@@ -53,7 +54,9 @@ export function MessageList({ messages, status, userInitials, isLoading, onRegen
               message={message}
               userInitials={userInitials}
               onRegenerate={onRegenerate}
+              onEdit={onEdit}
               canRegenerate={message.role === "assistant" && index === messages.length - 1 && status === "ready"}
+              canEdit={message.role === "user" && status === "ready"}
             />
           ))}
 

@@ -2,7 +2,7 @@
 
 > Acest fișier este **sursa de adevăr** pentru ce construim. Orice schimbare de direcție se scrie AICI, nu doar în conversație. Vezi [Cum se schimbă cerințele](#9-cum-se-schimbă-cerințele).
 >
-> Ultima actualizare: 2026-09-14 · Faza curentă: **Faza 5 — Arhiva persistentă a conversațiilor** (livrată) · pas didactic: tema reimplementată cu context React
+> Ultima actualizare: 2026-09-14 · Faza curentă: **Faza 5 — Finisaje UX** (livrată) · pas didactic: randarea sigură a răspunsurilor și editarea mesajelor
 >
 > Numerotarea fazelor din acest fișier e a proiectului. Materialul de curs numără separat pașii de UI („primul pas de interfață"); când cele două diferă, numerotarea de aici e cea validă.
 
@@ -270,6 +270,16 @@ Mesajele au două proprietăți deliberate: în timpul streamingului sursa de ad
 La redeschiderea unei conversații, componenta de chat primește mesajele arhivate și este remontată cu `key` legat de id. Asta este necesar deoarece hook-ul are propria listă internă, iar schimbarea id-ului singură nu schimbă mesajele afișate. `localStorage` păstrează doar datele durabile; statusul de încărcare, erorile și dialogurile rămân efemere. Forma nouă a conversației a incrementat versiunea persistată și are migrare pentru datele vechi.
 
 Compromisul acceptat este explicit: un răspuns întrerupt de refresh înainte de finalul streamingului nu ajunge în arhivă și se pierde. `localStorage` are o limită de câțiva megabytes; când istoricul o atinge, scrierea poate eșua și aplicația va avea nevoie de stocare pe server, livrată ulterior în Faza 9.
+
+### Sub-pas — Finisaje UX _(livrat)_
+
+**Intră:** un singur component `src/components/chat/markdown.tsx` pentru toate mesajele, randare Markdown GFM progresivă și sigură fără HTML brut, link-uri externe cu `target="_blank"` și `rel="noopener noreferrer"`, highlighting selectiv pentru TypeScript, TSX, JavaScript, JSON, Bash, SQL și Python, plus copiere pe fiecare bloc de cod cu verificare de context securizat și notificare existentă. Indicatorul „scrie…” rămâne derivat din statusul real `submitted`/`streaming`, iar mesajul utilizatorului este optimist pentru că `useChat` îl introduce direct în listă.
+
+Editarea este permisă doar pentru mesajele utilizatorului când statusul este `ready`: lista se taie de la mesajul editat în jos, apoi textul se retrimite prin același `useChat`, astfel încât nu rămân două fire paralele. Pluginul HTML din Markdown nu este activat, iar `dangerouslySetInnerHTML` nu este folosit pe conținut venit de la model.
+
+**Dependențe:** `react-markdown`, `remark-gfm` și `react-syntax-highlighter` sunt dependențe locale de randare, fără cont, cheie sau documentație de integrare externă.
+
+**Gata când:** un răspuns lung cu titluri, listă, tabel și două blocuri de cod în limbaje diferite se formatează în timp ce curge, fiecare bloc poate fi copiat, iar editarea unui mesaj din mijloc elimină răspunsul și mesajele de sub el înainte de retrimitere.
 
 ---
 

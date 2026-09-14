@@ -248,7 +248,8 @@ export const useAppStore = create<AppState>()(
         }
 
         if (version < 6) {
-          const { theme: _theme, ...stateWithoutTheme } = state as PersistedAppState & { theme?: unknown };
+          const stateWithoutTheme = { ...state } as PersistedAppState & { theme?: unknown };
+          delete stateWithoutTheme.theme;
           return stateWithoutTheme;
         }
 
