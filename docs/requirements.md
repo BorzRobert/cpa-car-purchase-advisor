@@ -2,7 +2,7 @@
 
 > Acest fișier este **sursa de adevăr** pentru ce construim. Orice schimbare de direcție se scrie AICI, nu doar în conversație. Vezi [Cum se schimbă cerințele](#9-cum-se-schimbă-cerințele).
 >
-> Ultima actualizare: 2026-09-14 · Faza curentă: **Faza 5 — Arhiva persistentă a conversațiilor** (livrată)
+> Ultima actualizare: 2026-09-14 · Faza curentă: **Faza 5 — Arhiva persistentă a conversațiilor** (livrată) · pas didactic: tema reimplementată cu context React
 >
 > Numerotarea fazelor din acest fișier e a proiectului. Materialul de curs numără separat pașii de UI („primul pas de interfață"); când cele două diferă, numerotarea de aici e cea validă.
 
@@ -91,7 +91,7 @@ Nu sunt detalii cosmetice — fără ele, diferențele dintre proiectele cursan�
 - **Un component per fișier**, cu nume de fișier în `kebab-case` și componentă în `PascalCase`.
 - **Registru, nu lanțuri de `if`:** listele care cresc (providere, secțiuni de preferințe, sugestii, opțiuni de temă) se declară ca date, iar UI-ul iterează peste ele. Așa o intrare nouă nu cere modificări în JSX.
 - **Datele inventate stau NUMAI în `src/lib/mock/`.** Nicio valoare de test scrisă direct în componente — altfel înlocuirea lor cu date reale devine o vânătoare prin toate fișierele.
-- **Starea aplicației într-un singur store** (`src/store/useAppStore.ts`, Zustand + `persist`, cheia `skillforge-app`). Ce e de moment (stare de încărcare, erori, dialoguri deschise) nu se salvează.
+- **Starea aplicației într-un singur store** (`src/store/useAppStore.ts`, Zustand + `persist`, cheia `skillforge-app`). Ce e de moment (stare de încărcare, erori, dialoguri deschise) nu se salvează. Preferința de temă este excepția didactică: a fost mutată într-un context React propriu, cu cheia separată `skillforge-theme`, pentru a compara cele două mecanisme de stare globală; tema are puțini consumatori și se schimbă rar.
 
 ---
 
@@ -144,10 +144,10 @@ Regula de lucru a cursului: **un concept nou pe fază**. Ce nu e listat într-o 
 - **Header** (`src/components/layout/app-header.tsx`): doar `SidebarTrigger` + titlul conversației. Fără bară de acțiuni și, explicit, **fără buton de temă**.
 - **Centru** (`src/components/chat/`): `chat.tsx` (decide ecran de start vs. conversație), `message-list.tsx`, `message-item.tsx`, `chat-input.tsx`, `empty-state.tsx`.
 
-**Intrat — preferințele ca fereastră separată** (`src/components/settings/settings-dialog.tsx`): un `Dialog` cu două panouri — stânga navigația (`Settings` → General, `UserRound` → Profilul tău, `Sparkles` → Providere), dreapta conținutul. Nu e panou inline și nu înlocuiește conversația.
+**Intrat — preferințele ca fereastră separată** (`src/components/settings/settings-dialog.tsx`): un `Dialog` cu două panouri — stânga navigația (`Settings` → General, `UserRound` → Profilul tău, `Sparkles` → Providere), dreapta conținutul. Nu e panou inline și nu înlocuiește conversația. Tema rămâne o setare, dar preferința ei este gestionată de `createContext` + `useContext`, nu de store-ul Zustand; contextul transmite starea fără props, iar `useTheme()` e singura cale de consum.
 
 - **Profilul tău** (`settings/profile-form.tsx`): `Nume`, `Stack actual`, `Skills` (un `Textarea`, o pereche pe linie, în formatul `nume: nivel`) și `Obiectiv`, cu `Input`/`Textarea` + `Label`. Niveluri permise: `începător`, `intermediar`, `avansat`; liniile neînțelese sunt raportate într-un `Alert`, iar profilul nu se salvează până sunt corectate.
-- **General → Appearance** (`settings/appearance-form.tsx`): `ToggleGroup` cu trei opțiuni — **sistem** (`Monitor`), **light** (`Sun`), **dark** (`Moon`). Tema se schimbă **doar de aici**. Implicit: `sistem`, calculat cu `matchMedia("(prefers-color-scheme: dark)")` + listener, ca schimbarea din sistemul de operare să se vadă fără refresh (`src/components/theme/theme-provider.tsx`).
+- **General → Appearance** (`settings/appearance-form.tsx`): `ToggleGroup` cu trei opțiuni — **sistem** (`Monitor`), **light** (`Sun`), **dark** (`Moon`). Tema se schimbă **doar de aici**. Implicit: `sistem`, calculat cu `matchMedia("(prefers-color-scheme: dark)")` + listener, ca schimbarea din sistemul de operare să se vadă fără refresh (`src/components/theme/theme-provider.tsx`). Providerul propriu expune preferința, tema rezolvată și setterul prin `useTheme()`, persistă separat în `skillforge-theme`, iar scriptul sincron din layout previne flash-ul inițial; citirea vechii teme din `skillforge-app` este doar o punte temporară de migrare.
 - **Providere** (`settings/providers-form.tsx`): provider și model, generate din registru. OpenAI apare dezactivat, cu eticheta fazei în care intră. Aici nu există și nu va exista câmp pentru cheia de API — cheia stă pe server.
 
 **Intrat — composer-ul** (`chat/chat-input.tsx`): cutie cu bordură, `Textarea` care crește cu textul (până la o înălțime maximă, apoi derulează), `Enter` trimite / `Shift+Enter` rând nou. Pe rândul de jos al cutiei: stânga `Plus` (loc rezervat pentru atașamente), dreapta providerul + modelul și un singur buton care comută între `Send` și `Square` (stop).

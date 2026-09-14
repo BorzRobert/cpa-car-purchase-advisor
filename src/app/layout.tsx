@@ -42,15 +42,16 @@ export const metadata: Metadata = {
  * întunecată ar vedea o fracțiune de secundă de alb — sâcâitor și foarte vizibil. Scriptul de
  * aici e sincron: rulează înainte de desenare și pune clasa la timp.
  *
- * DE CE citește chiar `localStorage["skillforge-app"]`:
- * e cheia sub care salvează store-ul (`persist`). Formatul e `{ state: {...}, version: n }`,
- * de unde ne interesează doar `state.theme`. Totul e în `try/catch`: dacă utilizatorul are
- * cookie-urile/stocarea blocate, aplicația trebuie să pornească oricum, pe tema sistemului.
+ * DE CE citește `localStorage["skillforge-theme"]`:
+ * tema are acum starea ei, separată de store-ul aplicației. Fallback-ul vechi este o punte
+ * temporară pentru utilizatorii care au deja o preferință în `skillforge-app`.
  */
 const themeScript = `(function () {
   try {
-    var raw = localStorage.getItem("skillforge-app");
-    var preference = raw ? JSON.parse(raw).state.theme : "sistem";
+    var raw = localStorage.getItem("skillforge-theme");
+    var legacyRaw = localStorage.getItem("skillforge-app");
+    var legacyPreference = legacyRaw ? JSON.parse(legacyRaw).state.theme : undefined;
+    var preference = raw || legacyPreference || "sistem";
     var dark = preference === "dark" ||
       (preference === "sistem" && window.matchMedia("(prefers-color-scheme: dark)").matches);
     document.documentElement.classList.toggle("dark", dark);

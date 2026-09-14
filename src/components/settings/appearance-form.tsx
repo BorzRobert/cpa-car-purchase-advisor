@@ -17,7 +17,7 @@
 import { Monitor, Moon, Sun } from "lucide-react";
 import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group";
 import { Label } from "@/components/ui/label";
-import { useAppStore } from "@/store/useAppStore";
+import { useTheme } from "@/components/theme/theme-provider";
 import type { ThemePreference } from "@/lib/types";
 
 /**
@@ -44,8 +44,7 @@ function isThemePreference(value: string): value is ThemePreference {
 }
 
 export function AppearanceForm() {
-  const theme = useAppStore(state => state.theme);
-  const setTheme = useAppStore(state => state.setTheme);
+  const { preference, setTheme } = useTheme();
 
   return (
     <div className="flex flex-wrap items-center justify-between gap-3">
@@ -63,7 +62,7 @@ export function AppearanceForm() {
         apasă opțiunea deja activă. Atunci nu schimbăm nimic: o temă trebuie să rămână aleasă.
       */}
       <ToggleGroup
-        value={[theme]}
+        value={[preference]}
         onValueChange={([next]) => {
           if (next && isThemePreference(next)) setTheme(next);
         }}

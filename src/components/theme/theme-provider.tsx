@@ -18,12 +18,21 @@
  * care vrem doar conversația — iar cerința de produs e explicită: centrul rămâne curat.
  */
 
-import { useEffect } from "react";
-import { useAppStore, useStoreHydration } from "@/store/useAppStore";
+import { createContext, useContext, useEffect, useState } from "react";
 import type { ResolvedTheme, ThemePreference } from "@/lib/types";
 
 /** Interogarea sistemului de operare. Constantă, ca să nu apară scrisă greșit în două locuri. */
 const DARK_QUERY = "(prefers-color-scheme: dark)";
+const THEME_STORAGE_KEY = "skillforge-theme";
+const LEGACY_STORAGE_KEY = "skillforge-app";
+
+type ThemeContextValue = {
+  preference: ThemePreference;
+  resolvedTheme: ResolvedTheme;
+  setTheme: (preference: ThemePreference) => void;
+};
+
+const ThemeContext = createContext<ThemeContextValue | undefined>(undefined);
 
 /**
  * Din preferință + starea sistemului rezultă tema efectivă.
@@ -35,24 +44,37 @@ export function resolveTheme(preference: ThemePreference, systemPrefersDark: boo
   return preference;
 }
 
-export function ThemeProvider({ children }: { children: React.ReactNode }) {
-  const theme = useAppStore(state => state.theme);
+function isThemePreference(value: unknown): value is ThemePreference {
+  return value === "sistem" || value === "light" || value === "dark";
+}
 
-  /**
-   * DE CE ne interesează dacă starea a fost rehidratată:
-   * înainte de rehidratare, `theme` e valoarea implicită („sistem"), nu alegerea salvată de
-   * utilizator. Dacă am aplica-o, cineva care a ales „light" ar vedea o clipă tema sistemului.
-   * (Scriptul din `layout.tsx` acoperă chiar și acea clipă, înainte de primul paint.)
-   */
-  const hydrated = useStoreHydration();
+function readStoredTheme(): ThemePreference {
+  try {
+    const storedTheme = localStorage.getItem(THEME_STORAGE_KEY);
+    if (isThemePreference(storedTheme)) return storedTheme;
+
+    // Punte temporară: păstrăm alegerea veche când utilizatorul deschide prima dată versiunea nouă.
+    const legacyState = localStorage.getItem(LEGACY_STORAGE_KEY);
+    const legacyTheme = legacyState ? JSON.parse(legacyState).state?.theme : undefined;
+    return isThemePreference(legacyTheme) ? legacyTheme : "sistem";
+  } catch {
+    // Stocarea poate fi blocată de browser; tema sistemului este un fallback valid și sigur.
+    return "sistem";
+  }
+}
+
+export function ThemeProvider({ children }: { children: React.ReactNode }) {
+  const [preference, setPreference] = useState<ThemePreference>(() =>
+    typeof window === "undefined" ? "sistem" : readStoredTheme()
+  );
+  const [resolvedTheme, setResolvedTheme] = useState<ResolvedTheme>("light");
 
   useEffect(() => {
-    if (!hydrated) return;
-
     const media = window.matchMedia(DARK_QUERY);
 
     const apply = () => {
-      const resolved = resolveTheme(theme, media.matches);
+      const resolved = resolveTheme(preference, media.matches);
+      setResolvedTheme(resolved);
       // `toggle` cu al doilea argument: adaugă clasa când e dark, o scoate când e light.
       document.documentElement.classList.toggle("dark", resolved === "dark");
       // `color-scheme` spune browserului cum să deseneze ce NU controlăm noi:
@@ -68,11 +90,29 @@ export function ThemeProvider({ children }: { children: React.ReactNode }) {
      * de la el nu trebuie să schimbe nimic. Abonamentul e și curățat la demontare — altfel, la
      * fiecare schimbare de temă am lăsa în urmă un listener care mai ascultă degeaba.
      */
-    if (theme !== "sistem") return;
+    if (preference !== "sistem") return;
 
     media.addEventListener("change", apply);
     return () => media.removeEventListener("change", apply);
-  }, [theme, hydrated]);
+  }, [preference]);
 
-  return children;
+  useEffect(() => {
+    try {
+      localStorage.setItem(THEME_STORAGE_KEY, preference);
+    } catch {
+      // Tema rămâne funcțională și fără persistență; blocarea storage-ului nu trebuie să crape UI-ul.
+    }
+  }, [preference]);
+
+  const setTheme = (nextPreference: ThemePreference) => setPreference(nextPreference);
+
+  return <ThemeContext.Provider value={{ preference, resolvedTheme, setTheme }}>{children}</ThemeContext.Provider>;
+}
+
+export function useTheme(): ThemeContextValue {
+  const context = useContext(ThemeContext);
+  if (!context) {
+    throw new Error("useTheme must be used inside ThemeProvider");
+  }
+  return context;
 }

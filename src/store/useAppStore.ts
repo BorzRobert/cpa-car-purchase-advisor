@@ -1,7 +1,7 @@
 "use client";
 
 /**
- * Starea aplicației: profil, lista conversațiilor, provider, temă.
+ * Starea aplicației: profil, lista conversațiilor și provider.
  *
  * DE CE un store global și nu `useState` în componente:
  * aceleași date sunt citite din trei locuri care nu se conțin unul pe altul — sidebar-ul
@@ -27,7 +27,7 @@
 import { useEffect, useState } from "react";
 import { create } from "zustand";
 import { persist, createJSONStorage, type StateStorage } from "zustand/middleware";
-import type { Conversation, Profile, ProviderId, ThemePreference } from "@/lib/types";
+import type { Conversation, Profile, ProviderId } from "@/lib/types";
 import { DEFAULT_MODEL_ID, DEFAULT_PROVIDER_ID, PROVIDERS } from "@/lib/providers";
 import { mockProfile } from "@/lib/mock/profile";
 import { mockConversations } from "@/lib/mock/conversations";
@@ -42,7 +42,6 @@ type AppState = {
   activeConversationId: string | null;
   providerId: ProviderId;
   modelId: string;
-  theme: ThemePreference;
 
   // --- stare efemeră (NU se salvează: vezi `partialize`) ---
   settingsOpen: boolean;
@@ -50,7 +49,6 @@ type AppState = {
 
   // --- acțiuni ---
   setProfile: (profile: Profile) => void;
-  setTheme: (theme: ThemePreference) => void;
   selectProvider: (providerId: ProviderId) => void;
   setModel: (modelId: string) => void;
   startNewConversation: () => void;
@@ -66,7 +64,7 @@ type AppState = {
 
 type PersistedAppState = Pick<
   AppState,
-  "profile" | "conversations" | "activeConversationId" | "providerId" | "modelId" | "theme"
+  "profile" | "conversations" | "activeConversationId" | "providerId" | "modelId"
 >;
 
 /**
@@ -127,13 +125,11 @@ export const useAppStore = create<AppState>()(
       activeConversationId: null,
       providerId: DEFAULT_PROVIDER_ID,
       modelId: DEFAULT_MODEL_ID,
-      theme: "sistem",
 
       settingsOpen: false,
       settingsSection: "general",
 
       setProfile: profile => set({ profile }),
-      setTheme: theme => set({ theme }),
 
       /**
        * DE CE schimbarea providerului resetează și modelul:
@@ -228,8 +224,7 @@ export const useAppStore = create<AppState>()(
         conversations: state.conversations,
         activeConversationId: state.activeConversationId,
         providerId: state.providerId,
-        modelId: state.modelId,
-        theme: state.theme
+        modelId: state.modelId
       }),
 
       /**
@@ -237,7 +232,7 @@ export const useAppStore = create<AppState>()(
        * Când profilul primește un câmp nou, starea salvată pe calculatorul cuiva va fi veche.
        * Cu `version` + `migrate` avem unde trata cazul, în loc să crape aplicația pe date vechi.
        */
-      version: 5,
+      version: 6,
 
       migrate: (persistedState, version) => {
         const state = persistedState as PersistedAppState;
@@ -250,6 +245,11 @@ export const useAppStore = create<AppState>()(
               messages: Array.isArray(conversation.messages) ? normalizeMessages(conversation.messages) : []
             }))
           };
+        }
+
+        if (version < 6) {
+          const { theme: _theme, ...stateWithoutTheme } = state as PersistedAppState & { theme?: unknown };
+          return stateWithoutTheme;
         }
 
         return state;
