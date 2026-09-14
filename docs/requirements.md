@@ -2,7 +2,7 @@
 
 > Acest fișier este **sursa de adevăr** pentru ce construim. Orice schimbare de direcție se scrie AICI, nu doar în conversație. Vezi [Cum se schimbă cerințele](#9-cum-se-schimbă-cerințele).
 >
-> Ultima actualizare: 2026-09-09 · Faza curentă: **Faza 5 — Al doilea provider și acțiuni pe conversație** (livrată parțial)
+> Ultima actualizare: 2026-09-14 · Faza curentă: **Faza 5 — Arhiva persistentă a conversațiilor** (livrată)
 >
 > Numerotarea fazelor din acest fișier e a proiectului. Materialul de curs numără separat pașii de UI („primul pas de interfață"); când cele două diferă, numerotarea de aici e cea validă.
 
@@ -237,7 +237,7 @@ Regula de lucru a cursului: **un concept nou pe fază**. Ce nu e listat într-o 
 - în UI se vede obiectivul profilului activ pe ecranul unei conversații noi (transparență);
 - persona are rol, domeniu și guardrails explicite: nu inventează fapte, nu promite angajări sau salarii și nu dă sfaturi juridice sau medicale.
 
-**Nu intră:** istoric persistent al conversațiilor, memorie de fapte, profil pe server.
+**Nu intră:** memorie de fapte, profil pe server.
 
 **Gata când:** aceeași întrebare, cu două profile diferite, produce două răspunsuri clar diferite — și întrebarea de referință nr. 1 (§3) primește un răspuns care nu ar fi valabil pentru altcineva.
 
@@ -262,6 +262,14 @@ Regula de lucru a cursului: **un concept nou pe fază**. Ce nu e listat într-o 
 **Gata când:** acțiunile operează pe lista `useChat`, reluarea nu lasă un al doilea răspuns, exporturile se deschid ca fișiere valide, iar copierea nu produce crash pe un URL fără context securizat.
 
 **Gata acum pentru partea parțială:** schimbi providerul și modelul din composer pentru mesajul următor fără să modifici cod; un provider neconfigurat rămâne vizibil și explicat, iar cererea lui este respinsă clar cu `400`. Criteriul costului se verifică doar după livrarea sub-pasului dedicat.
+
+### Sub-pas — Arhiva persistentă a conversațiilor _(livrat)_
+
+Mesajele au două proprietăți deliberate: în timpul streamingului sursa de adevăr este `useChat`, care construiește mesajul token cu token; după ce fluxul ajunge la `ready`, store-ul Zustand devine arhiva conversației și persistă lista împreună cu mesajele. Sincronizarea nu se face la fiecare token, deoarece `persist` scrie sincron în `localStorage` și ar serializa întregul istoric de sute de ori într-un răspuns lung.
+
+La redeschiderea unei conversații, componenta de chat primește mesajele arhivate și este remontată cu `key` legat de id. Asta este necesar deoarece hook-ul are propria listă internă, iar schimbarea id-ului singură nu schimbă mesajele afișate. `localStorage` păstrează doar datele durabile; statusul de încărcare, erorile și dialogurile rămân efemere. Forma nouă a conversației a incrementat versiunea persistată și are migrare pentru datele vechi.
+
+Compromisul acceptat este explicit: un răspuns întrerupt de refresh înainte de finalul streamingului nu ajunge în arhivă și se pierde. `localStorage` are o limită de câțiva megabytes; când istoricul o atinge, scrierea poate eșua și aplicația va avea nevoie de stocare pe server, livrată ulterior în Faza 9.
 
 ---
 
@@ -344,7 +352,7 @@ Nu construim, până când nu apare aici o cerință explicită: aplicație mobi
 
 Profilul conține date despre carieră: rol actual, angajator (opțional), skill-uri, nivel, obiective, timp disponibil. Sunt date personale, chiar dacă nu sunt sensibile legal.
 
-- **Unde stau, pe fază:** în Faza 4, profilul colectează doar numele, stack-ul actual, skill-urile cu nivel și obiectivul; stă în `localStorage`, doar în browserul utilizatorului, pe un singur dispozitiv. În Fazele 5–8 rămâne așa. Faza 9 îl mută în Supabase, legat de cont și protejat prin Row Level Security.
+- **Unde stau, pe fază:** în Faza 4, profilul colectează doar numele, stack-ul actual, skill-urile cu nivel și obiectivul; stă în `localStorage`, doar în browserul utilizatorului, pe un singur dispozitiv. În Fazele 5–8 rămâne așa. Faza 9 îl mută în Supabase, legat de cont și protejat prin Row Level Security. Istoricul brut al conversațiilor este arhivat local din sub-pasul de persistență al Fazei 5.
 - **Cine le vede:** utilizatorul și providerul de LLM ales de aplicație, deoarece profilul este trimis la fiecare cerere pentru personalizare. Interfața spune explicit acest lucru.
 - **Minimizare:** serverul acceptă doar cele patru câmpuri permise, le curăță și le plafonează înainte de prompt; la această fază nu există fapte reținute sau istoric injectat suplimentar.
 - **Control:** din Faza 4 utilizatorul poate exporta profilul ca JSON și îl poate șterge din preferințe. Ștergerea înseamnă înlocuirea datelor profilului cu un profil gol în starea persistată, nu un marcaj.

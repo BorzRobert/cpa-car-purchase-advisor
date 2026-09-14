@@ -12,6 +12,8 @@
  */
 
 /** Rolul autorului unui mesaj. Aceleași două valori pe care le folosesc și API-urile de LLM. */
+import type { UIMessage } from "ai";
+
 export type Role = "user" | "assistant";
 
 /**
@@ -43,6 +45,7 @@ export type Conversation = {
   id: string;
   title: string;
   createdAt: string;
+  messages: UIMessage[];
 };
 
 /**

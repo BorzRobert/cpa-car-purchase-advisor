@@ -15,9 +15,14 @@
  * bază de date. `persist` face exact atât, iar la Faza 9 se înlocuiește stratul de storage —
  * componentele nu se ating, pentru că ele văd doar acest store.
  *
- * DE CE mesajele nu sunt aici:
- * `useChat` deține conversația deschisă și fluxul ei SSE. Store-ul păstrează numai lista pentru
- * sidebar; două surse pentru aceleași mesaje s-ar desincroniza inevitabil.
+ * DE CE există două niveluri pentru mesaje:
+ * cât timp răspunsul curge, `useChat` este sursa de adevăr — el construiește mesajul token cu
+ * token. Store-ul este arhiva: păstrează conversațiile împreună cu mesajele lor numai după ce
+ * streamingul s-a terminat. Astfel `persist` nu serializează istoricul la fiecare token.
+ * Contextul React ar cere un Provider și nu are selectors, deci orice consumator ar reranda la
+ * orice schimbare. Store-ul se citește de oriunde și are selectors, dar valoarea e mai puțin
+ * vizibilă în arbore. Pentru valori rare cu puțini consumatori alegem Context; pentru stare
+ * citită din multe locuri și schimbată des alegem store.
  */
 import { useEffect, useState } from "react";
 import { create } from "zustand";
@@ -50,6 +55,7 @@ type AppState = {
   setModel: (modelId: string) => void;
   startNewConversation: () => void;
   createConversation: (firstMessage: string) => void;
+  updateConversationMessages: (id: string, messages: Conversation["messages"]) => void;
   selectConversation: (id: string) => void;
   renameConversation: (id: string, title: string) => void;
   deleteConversation: (id: string) => void;
@@ -78,6 +84,39 @@ const noopStorage: StateStorage = {
 function buildTitle(firstMessage: string): string {
   const clean = firstMessage.trim().replace(/\s+/g, " ");
   return clean.length > 48 ? `${clean.slice(0, 48)}…` : clean || "Conversație nouă";
+}
+
+function getMessageText(message: Conversation["messages"][number]): string {
+  return message.parts
+    .filter(part => part.type === "text")
+    .map(part => part.text)
+    .join("");
+}
+
+function normalizeMessages(messages: Conversation["messages"]): Conversation["messages"] {
+  const messageIndexes = new Map<string, number>();
+  const normalized: Conversation["messages"] = [];
+
+  for (const message of messages) {
+    const previousMessage = normalized[normalized.length - 1];
+    if (
+      previousMessage?.role === "user" &&
+      message.role === "user" &&
+      getMessageText(previousMessage) === getMessageText(message)
+    ) {
+      continue;
+    }
+
+    const previousIndex = messageIndexes.get(message.id);
+    if (previousIndex === undefined) {
+      messageIndexes.set(message.id, normalized.length);
+      normalized.push(message);
+    } else {
+      normalized[previousIndex] = message;
+    }
+  }
+
+  return normalized;
 }
 
 export const useAppStore = create<AppState>()(
@@ -120,13 +159,21 @@ export const useAppStore = create<AppState>()(
           const conversation: Conversation = {
             id: crypto.randomUUID(),
             title: buildTitle(firstMessage),
-            createdAt: new Date().toISOString()
+            createdAt: new Date().toISOString(),
+            messages: []
           };
 
           return { conversations: [conversation, ...state.conversations], activeConversationId: conversation.id };
         }),
 
       selectConversation: id => set({ activeConversationId: id }),
+
+      updateConversationMessages: (id, messages) =>
+        set(state => ({
+          conversations: state.conversations.map(conversation =>
+            conversation.id === id ? { ...conversation, messages: normalizeMessages(messages) } : conversation
+          )
+        })),
 
       renameConversation: (id, title) =>
         set(state => ({
@@ -178,7 +225,7 @@ export const useAppStore = create<AppState>()(
        */
       partialize: state => ({
         profile: state.profile,
-        conversations: state.conversations.map(({ id, title, createdAt }) => ({ id, title, createdAt })),
+        conversations: state.conversations,
         activeConversationId: state.activeConversationId,
         providerId: state.providerId,
         modelId: state.modelId,
@@ -190,15 +237,18 @@ export const useAppStore = create<AppState>()(
        * Când profilul primește un câmp nou, starea salvată pe calculatorul cuiva va fi veche.
        * Cu `version` + `migrate` avem unde trata cazul, în loc să crape aplicația pe date vechi.
        */
-      version: 2,
+      version: 5,
 
       migrate: (persistedState, version) => {
         const state = persistedState as PersistedAppState;
 
-        if (version < 2) {
+        if (version < 5) {
           return {
             ...state,
-            conversations: state.conversations.map(({ id, title, createdAt }) => ({ id, title, createdAt }))
+            conversations: state.conversations.map(conversation => ({
+              ...conversation,
+              messages: Array.isArray(conversation.messages) ? normalizeMessages(conversation.messages) : []
+            }))
           };
         }
 

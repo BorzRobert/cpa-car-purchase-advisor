@@ -86,6 +86,9 @@ Everything under `docs/` is written in Romanian — it is for the user.
 - Internal navigation uses `next/link`. Plain `<a>` only for things that are not React routes (API endpoints, external links) — and say why in a comment.
 - Server Components are the default; add `"use client"` only where browser state or event handlers are actually needed, and keep those components as small as possible.
 - TypeScript: no `any` in application code. Data crossing the client/server boundary (profile, messages) is validated on the server — it is untrusted input.
+- **Sursa de adevăr pe faze:** în timpul streamingului, hook-ul de chat deține mesajele și le construiește token cu token; după terminarea fluxului, store-ul devine arhiva persistentă a conversației. Citirile din store se fac prin selectors (`useAppStore(state => state.providerId)`), nu prin store-ul întreg.
+- Un selector nu construiește obiecte noi la fiecare apel (`state => ({ ... })`), fiindcă referința nouă provoacă rerandări inutile; se folosesc selectori separați sau comparația superficială a librăriei.
+- Orice schimbare a formei stării persistate cere incrementarea `version` și o funcție `migrate` care aduce datele vechi în forma curentă.
 - Do not commit unless the user asks.
 
 ## 7. Formatting is not up for discussion

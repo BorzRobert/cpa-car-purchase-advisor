@@ -27,6 +27,7 @@ import { AppHeader } from "@/components/layout/app-header";
 import { serializeConversationJson, serializeConversationMarkdown } from "@/lib/message-utils";
 import { useAppStore, useStoreHydration } from "@/store/useAppStore";
 import type { ProviderAvailability, ProviderId } from "@/lib/types";
+import type { UIMessage } from "ai";
 
 /** Inițialele pentru avatar. Extrase o dată, ca să nu se recalculeze la fiecare mesaj din listă. */
 function getInitials(name: string): string {
@@ -53,21 +54,66 @@ function getChatErrorMessage(error: Error): string {
 }
 
 export function Chat() {
+  const hydrated = useStoreHydration();
+  const activeConversationId = useAppStore(state => state.activeConversationId);
+  const conversations = useAppStore(state => state.conversations);
+  const createConversation = useAppStore(state => state.createConversation);
+  const updateConversationMessages = useAppStore(state => state.updateConversationMessages);
+  const [pendingMessage, setPendingMessage] = useState<string | null>(null);
+  const activeConversation = conversations.find(conversation => conversation.id === activeConversationId);
+
+  if (!hydrated) {
+    return <ChatSession initialMessages={[]} activeConversationId={null} pendingMessage={null} hydrated={false} />;
+  }
+
+  return (
+    <ChatSession
+      key={activeConversationId ?? "new"}
+      initialMessages={activeConversation?.messages ?? []}
+      activeConversationId={activeConversationId}
+      pendingMessage={pendingMessage}
+      hydrated={hydrated}
+      onCreateConversation={message => {
+        setPendingMessage(message);
+        createConversation(message);
+      }}
+      onPendingMessageSent={() => setPendingMessage(null)}
+      onMessagesFinished={(id, messages) => updateConversationMessages(id, messages)}
+    />
+  );
+}
+
+type ChatSessionProps = {
+  initialMessages: UIMessage[];
+  activeConversationId: string | null;
+  pendingMessage: string | null;
+  hydrated: boolean;
+  onCreateConversation?: (message: string) => void;
+  onPendingMessageSent?: () => void;
+  onMessagesFinished?: (id: string, messages: UIMessage[]) => void;
+};
+
+function ChatSession({
+  initialMessages,
+  activeConversationId,
+  pendingMessage,
+  hydrated,
+  onCreateConversation,
+  onPendingMessageSent,
+  onMessagesFinished
+}: ChatSessionProps) {
   const [draft, setDraft] = useState("");
   const [providerAvailability, setProviderAvailability] = useState<Record<ProviderId, ProviderAvailability> | null>(
     null
   );
   const composerWrapperRef = useRef<HTMLDivElement>(null);
-  const creatingConversationRef = useRef(false);
-
-  const hydrated = useStoreHydration();
+  const pendingMessageSentRef = useRef(false);
   const profile = useAppStore(state => state.profile);
-  const activeConversationId = useAppStore(state => state.activeConversationId);
   const providerId = useAppStore(state => state.providerId);
   const modelId = useAppStore(state => state.modelId);
-  const createConversation = useAppStore(state => state.createConversation);
 
   const { messages, status, sendMessage, stop, regenerate, error, setMessages, clearError } = useChat({
+    messages: initialMessages,
     transport: new DefaultChatTransport({
       api: "/api/chat",
       prepareSendMessagesRequest: ({ messages, body }) => ({
@@ -82,6 +128,8 @@ export function Chat() {
     })
   });
 
+  const previousStatusRef = useRef(status);
+
   const initials = getInitials(profile.name);
 
   useEffect(() => {
@@ -92,23 +140,30 @@ export function Chat() {
   }, []);
 
   useEffect(() => {
-    if (creatingConversationRef.current) {
-      creatingConversationRef.current = false;
-      return;
+    // Hook-ul e sursa de adevăr în timpul fluxului; arhiva primește o singură copie când fluxul s-a încheiat.
+    const wasStreaming = previousStatusRef.current === "submitted" || previousStatusRef.current === "streaming";
+    if (activeConversationId && wasStreaming && status === "ready") {
+      onMessagesFinished?.(activeConversationId, messages);
     }
-    setMessages([]);
-    clearError();
-  }, [activeConversationId, clearError, setMessages]);
+    previousStatusRef.current = status;
+  }, [activeConversationId, messages, onMessagesFinished, status]);
+
+  useEffect(() => {
+    if (!pendingMessage || !activeConversationId || pendingMessageSentRef.current) return;
+    // Efectele pot fi reluate în Strict Mode; aceeași întrebare trebuie să pornească un singur stream.
+    pendingMessageSentRef.current = true;
+    sendMessage({ text: pendingMessage });
+    onPendingMessageSent?.();
+  }, [activeConversationId, onPendingMessageSent, pendingMessage, sendMessage]);
 
   function handleSubmit() {
     if (!draft.trim()) return;
     const text = draft.trim();
     if (activeConversationId === null) {
-      // Schimbarea id-ului e doar crearea conversației curente, nu navigare spre alta.
-      creatingConversationRef.current = true;
-      createConversation(text);
+      onCreateConversation?.(text);
+    } else {
+      sendMessage({ text });
     }
-    sendMessage({ text });
     setDraft("");
     requestAnimationFrame(() => composerWrapperRef.current?.querySelector("textarea")?.focus());
   }
@@ -138,6 +193,7 @@ export function Chat() {
     if (!window.confirm("Golești mesajele acestei conversații? Acțiunea nu poate fi anulată.")) return;
     setMessages([]);
     clearError();
+    if (activeConversationId) onMessagesFinished?.(activeConversationId, []);
     toast.success("Conversația a fost golită");
   }
 

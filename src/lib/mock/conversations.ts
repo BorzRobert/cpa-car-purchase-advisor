@@ -18,6 +18,7 @@
  * răspunsul real al providerului, iar `buildMockReply` va fi înlocuit de streaming-ul din
  * `/api/chat`. Fișierul ăsta e singurul care trebuie atins.
  */
+import type { UIMessage } from "ai";
 import type { Conversation } from "@/lib/types";
 
 /**
@@ -179,8 +180,18 @@ Cu experiența ta de backend, la a doua și a treia ești deja acasă. Prima ți
  * Sidebar-ul are nevoie numai de identitatea conversației.
  * Mesajele demonstrate mai sus au servit Fazei 2; mesajele vii sunt acum deținute de `useChat`.
  */
-export const mockConversations: Conversation[] = mockConversationsWithMessages.map(({ id, title, createdAt }) => ({
-  id,
-  title,
-  createdAt
-}));
+export const mockConversations: Conversation[] = mockConversationsWithMessages.map(
+  ({ id, title, createdAt, messages }) => ({
+    id,
+    title,
+    createdAt,
+    messages: messages.map(
+      message =>
+        ({
+          id: message.id,
+          role: message.role as UIMessage["role"],
+          parts: [{ type: "text", text: message.content }]
+        }) satisfies UIMessage
+    )
+  })
+);
