@@ -107,7 +107,7 @@ function ChatSession({
   );
   const composerWrapperRef = useRef<HTMLDivElement>(null);
   const pendingMessageSentRef = useRef(false);
-  const forceRefreshRef = useRef(false);
+  const [forceRefresh, setForceRefresh] = useState(false);
   const profile = useAppStore(state => state.profile);
   const providerId = useAppStore(state => state.providerId);
   const modelId = useAppStore(state => state.modelId);
@@ -117,15 +117,14 @@ function ChatSession({
     transport: new DefaultChatTransport({
       api: "/api/chat",
       prepareSendMessagesRequest: ({ messages, body }) => {
-        const forceRefresh = forceRefreshRef.current;
-        forceRefreshRef.current = false;
+        setForceRefresh(false);
         return {
           body: {
             ...body,
             messages,
-            profile: useAppStore.getState().profile,
-            providerId: useAppStore.getState().providerId,
-            modelId: useAppStore.getState().modelId,
+            profile,
+            providerId,
+            modelId,
             forceRefresh
           }
         };
@@ -190,7 +189,7 @@ function ChatSession({
     // Tăiem răspunsul înainte de retrimitere ca `regenerate` să înlocuiască bula, nu să adauge una nouă.
     setMessages(messages.slice(0, messageIndex));
     clearError();
-    forceRefreshRef.current = true;
+    setForceRefresh(true);
     toast.info("Generez din nou răspunsul");
     void regenerate();
   }

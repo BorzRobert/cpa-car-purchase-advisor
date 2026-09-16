@@ -2,7 +2,7 @@
 
 > Acest fișier este **sursa de adevăr** pentru ce construim. Orice schimbare de direcție se scrie AICI, nu doar în conversație. Vezi [Cum se schimbă cerințele](#9-cum-se-schimbă-cerințele).
 >
-> Ultima actualizare: 2026-09-16 · Faza curentă: **Faza 5 — Cost, cache și protecții** (livrată) · pas didactic: măsurarea consumului real raportat de provider
+> Ultima actualizare: 2026-09-16 · Faza curentă: **Pasul de autentificare fără bază de date** (livrat parțial) · pas didactic: diferența dintre sesiunea citită pe server și hook-ul din client
 >
 > Numerotarea fazelor din acest fișier e a proiectului. Materialul de curs numără separat pașii de UI („primul pas de interfață"); când cele două diferă, numerotarea de aici e cea validă.
 
@@ -284,6 +284,16 @@ Editarea este permisă doar pentru mesajele utilizatorului când statusul este `
 **Gata când:** un răspuns lung cu titluri, listă, tabel și două blocuri de cod în limbaje diferite se formatează în timp ce curge, fiecare bloc poate fi copiat, iar editarea unui mesaj din mijloc elimină răspunsul și mesajele de sub el înainte de retrimitere.
 
 ---
+
+### Pas didactic — Autentificare fără bază de date _(livrat parțial)_
+
+**Scop:** aplicația știe cine face cererea și închide ruta care apelează modelul pentru oricine nu are sesiune validă, fără să salveze încă date despre cont.
+
+**Intră:** Auth.js v5 cu GitHub, configurație opțională în dezvoltare și obligatorie pentru ruta de chat în producție; sesiune citită cu `getServerSession` pe server și cu `useSession` numai sub `SessionProvider` în client; alegere de provider într-un dialog cu GitHub activ și Google complet afișat, dar inactiv; tratarea anulării OAuth în ruta catch-all; afișarea numelui, emailului și imaginii contului, cu ieșire din cont; log server-side cu numai identificatorul utilizatorului; `docs/nextauth/README.md`.
+
+**Nu intră:** bază de date, proprietar pentru conversații sau profil, migrare din `localStorage`, preferințe salvate pe cont și autorizare pe roluri. Conversațiile rămân locale și comune browserului până la pasul de persistență.
+
+**Gata când:** fără variabile Auth.js aplicația pornește și funcționează ca înainte, iar în producție ruta de chat este închisă; cu variabilele configurate login-ul arată contul real; un POST direct fără sesiune întoarce `401`; o cerere autentificată scrie în terminal doar identificatorul; anularea revine în aplicație cu mesaj în română și fără parametri vechi după refresh.
 
 ### Faza 6 — Memorie între sesiuni
 

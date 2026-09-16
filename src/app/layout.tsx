@@ -17,6 +17,9 @@ import { Geist, Geist_Mono } from "next/font/google";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { Toaster } from "@/components/ui/sonner";
 import { ThemeProvider } from "@/components/theme/theme-provider";
+import { AuthProvider } from "@/components/auth/auth-provider";
+import { AuthErrorNotice } from "@/components/auth/auth-error-notice";
+import { authConfigured } from "@/lib/auth";
 import "./globals.css";
 
 const geistSans = Geist({
@@ -74,12 +77,15 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
       </head>
       <body className="flex min-h-full flex-col">
         <ThemeProvider>
-          {/*
+          <AuthProvider configured={authConfigured}>
+            {/**
             TooltipProvider o dată, la rădăcină: tooltip-urile împart o singură temporizare,
             deci trecerea rapidă a mouse-ului peste mai multe butoane nu deschide trei
             tooltip-uri suprapuse.
           */}
-          <TooltipProvider>{children}</TooltipProvider>
+            <TooltipProvider>{children}</TooltipProvider>
+            <AuthErrorNotice />
+          </AuthProvider>
           {/*
             Toaster-ul stă în afara conținutului: notificările se randează într-un portal, deci
             nu trebuie să fie într-un anumit loc din arbore. Culorile lui vin din tokenii temei,

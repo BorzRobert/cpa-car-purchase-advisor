@@ -49,6 +49,8 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { useAppStore, useStoreHydration } from "@/store/useAppStore";
 import type { Conversation } from "@/lib/types";
+import { AuthConfiguredOnly, AuthNotConfiguredOnly } from "@/components/auth/auth-provider";
+import { AuthSidebarUser } from "@/components/auth/auth-controls";
 
 export function AppSidebar() {
   const hydrated = useStoreHydration();
@@ -209,20 +211,27 @@ export function AppSidebar() {
           */}
           <SidebarMenu>
             <SidebarMenuItem>
-              <SidebarMenuButton
-                size="lg"
-                onClick={() => {
-                  openSettings();
-                  closeOnMobile();
-                }}
-                aria-label="Deschide preferințele"
-              >
-                <Avatar className="size-7">
-                  <AvatarFallback className="bg-muted text-xs">{profile.name.slice(0, 2).toUpperCase()}</AvatarFallback>
-                </Avatar>
-                <span className="flex-1 truncate text-left">{profile.name}</span>
-                <ChevronUp className="text-muted-foreground" />
-              </SidebarMenuButton>
+              <AuthConfiguredOnly>
+                <AuthSidebarUser onSettings={openSettings} />
+              </AuthConfiguredOnly>
+              <AuthNotConfiguredOnly>
+                <SidebarMenuButton
+                  size="lg"
+                  onClick={() => {
+                    openSettings();
+                    closeOnMobile();
+                  }}
+                  aria-label="Deschide preferințele"
+                >
+                  <Avatar className="size-7">
+                    <AvatarFallback className="bg-muted text-xs">
+                      {profile.name.slice(0, 2).toUpperCase()}
+                    </AvatarFallback>
+                  </Avatar>
+                  <span className="flex-1 truncate text-left">{profile.name}</span>
+                  <ChevronUp className="text-muted-foreground" />
+                </SidebarMenuButton>
+              </AuthNotConfiguredOnly>
             </SidebarMenuItem>
           </SidebarMenu>
         </SidebarFooter>

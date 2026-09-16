@@ -5,6 +5,7 @@
 import { createUIMessageStream, createUIMessageStreamResponse, convertToModelMessages, streamText } from "ai";
 import { createHash, randomUUID } from "node:crypto";
 import type { UIMessage } from "ai";
+import { authConfigured, getServerSession } from "@/lib/auth";
 import { cache } from "@/lib/cache";
 import { calculateCost } from "@/lib/cost";
 import { DEFAULT_MODEL_ID, DEFAULT_PROVIDER_ID } from "@/lib/providers";
@@ -70,6 +71,14 @@ function createCachedResponse(response: CachedResponse): Response {
 }
 
 export async function POST(request: Request) {
+  // În producție, lipsa configurației închide ruta plătită; altfel deploy-ul ar deveni public fără să observe nimeni.
+  if (authConfigured || process.env.NODE_ENV === "production") {
+    const session = await getServerSession();
+    if (!session?.user?.id)
+      return Response.json({ error: "Trebuie să fii autentificat ca să întrebi agentul." }, { status: 401 });
+    console.info(`[chat] cerere autentificată pentru utilizatorul ${session.user.id}`);
+  }
+
   let messages: UIMessage[];
   let profile: ReturnType<typeof normalizeProfile>;
   let providerId = DEFAULT_PROVIDER_ID;

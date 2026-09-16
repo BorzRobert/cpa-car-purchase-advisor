@@ -61,6 +61,14 @@ Everything under `docs/` is written in Romanian — it is for the user.
 - Formula de cost are un singur loc, `src/lib/cost.ts`; prețurile sunt în registry-ul de providere și au data verificării.
 - Cache-ul se accesează doar prin `src/lib/cache.ts`, iar cheia include tot ce influențează răspunsul, inclusiv system prompt-ul.
 - Datele venite din browser se normalizează pe server înainte să intre într-un prompt.
+- Autentificarea este opțională la pornire, dar orice rută care costă bani se închide în producție
+  când Auth.js nu este configurat; verificarea sesiunii stă în handler-ul serverului, înainte de
+  rate-limit, cache sau provider. Sesiunea se citește cu funcția server-side și se așteaptă, iar
+  hook-ul client-side se folosește numai sub `SessionProvider`, pe o ramură montată condiționat
+  prin context propriu.
+- Numele, emailul și poza venite de la furnizor nu sunt profil local: emailul este readonly,
+  nu intră în tipul profilului, în `localStorage` sau în system prompt. Jurnalul serverului scrie
+  doar identificatorul utilizatorului, niciodată date personale sau tokenuri.
 
 ## 4. Course working rhythm
 

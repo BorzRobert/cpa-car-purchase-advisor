@@ -30,6 +30,7 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { useAppStore } from "@/store/useAppStore";
 import { SKILL_LEVELS, type Skill, type SkillLevel } from "@/lib/types";
+import { AuthAccountField } from "@/components/auth/auth-controls";
 
 /** Profilul → text pentru `Textarea`. O pereche pe linie. */
 function skillsToText(skills: Skill[]): string {
@@ -142,6 +143,8 @@ export function ProfileForm() {
         <Input id="profile-name" value={name} onChange={event => setName(event.target.value)} />
         <p className="text-xs text-muted-foreground">Apare în sidebar și în salutul de pe ecranul de start.</p>
       </div>
+
+      <AuthAccountField />
 
       <div className="flex flex-col gap-2">
         <Label htmlFor="profile-stack">Stack actual</Label>
