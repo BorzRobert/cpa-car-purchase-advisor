@@ -16,6 +16,16 @@ const auth = NextAuth({
   secret: process.env.AUTH_SECRET || process.env.NEXTAUTH_SECRET,
   pages: {
     error: "/"
+  },
+  callbacks: {
+    /**
+     * Sesiunea nu include automat identificatorul în obiectul trimis clientului. Îl copiem din
+     * subiectul tokenului ca ruta de chat să poată verifica server-side cine face cererea.
+     */
+    session({ session, token }) {
+      if (session.user && token.sub) session.user.id = token.sub;
+      return session;
+    }
   }
 });
 
