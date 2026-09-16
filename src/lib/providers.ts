@@ -22,9 +22,21 @@ export const PROVIDERS: Record<ProviderId, ProviderInfo> = {
     label: "Anthropic",
     description: "Providerul implicit al SkillForge. Se conectează la Faza 3, dintr-un Route Handler.",
     models: [
-      { id: "claude-haiku-4-5", label: "Claude Haiku 4.5" },
-      { id: "claude-opus-5", label: "Claude Opus 5" },
-      { id: "claude-sonnet-5", label: "Claude Sonnet 5" }
+      {
+        id: "claude-haiku-4-5",
+        label: "Claude Haiku 4.5",
+        pricing: { inputPerMillion: 1, outputPerMillion: 5, checkedAt: "2026-09-16" }
+      },
+      {
+        id: "claude-opus-5",
+        label: "Claude Opus 5",
+        pricing: { inputPerMillion: 5, outputPerMillion: 25, checkedAt: "2026-09-16" }
+      },
+      {
+        id: "claude-sonnet-5",
+        label: "Claude Sonnet 5",
+        pricing: { inputPerMillion: 2, outputPerMillion: 10, checkedAt: "2026-09-16" }
+      }
     ]
   },
   openai: {
@@ -32,8 +44,16 @@ export const PROVIDERS: Record<ProviderId, ProviderInfo> = {
     label: "OpenAI",
     description: "Al doilea provider, pentru o a doua perspectivă la mesajul curent.",
     models: [
-      { id: "gpt-5", label: "GPT-5" },
-      { id: "gpt-5-mini", label: "GPT-5 mini" }
+      {
+        id: "gpt-5",
+        label: "GPT-5",
+        pricing: { inputPerMillion: 1.25, outputPerMillion: 10, checkedAt: "2026-09-16" }
+      },
+      {
+        id: "gpt-5-mini",
+        label: "GPT-5 mini",
+        pricing: { inputPerMillion: 0.25, outputPerMillion: 2, checkedAt: "2026-09-16" }
+      }
     ]
   }
 };

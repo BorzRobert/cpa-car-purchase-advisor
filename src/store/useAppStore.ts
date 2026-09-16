@@ -232,7 +232,7 @@ export const useAppStore = create<AppState>()(
        * Când profilul primește un câmp nou, starea salvată pe calculatorul cuiva va fi veche.
        * Cu `version` + `migrate` avem unde trata cazul, în loc să crape aplicația pe date vechi.
        */
-      version: 6,
+      version: 7,
 
       migrate: (persistedState, version) => {
         const state = persistedState as PersistedAppState;
@@ -251,6 +251,11 @@ export const useAppStore = create<AppState>()(
           const stateWithoutTheme = { ...state } as PersistedAppState & { theme?: unknown };
           delete stateWithoutTheme.theme;
           return stateWithoutTheme;
+        }
+
+        if (version < 7) {
+          // Metadata de cost este opțională, deci mesajele vechi rămân valide fără recalculare fictivă.
+          return state;
         }
 
         return state;

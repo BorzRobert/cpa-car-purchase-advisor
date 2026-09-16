@@ -2,7 +2,7 @@
 
 ## Ce face
 
-OpenAI este al doilea provider de răspunsuri pentru SkillForge. Utilizatorul poate cere o a doua perspectivă pentru mesajul curent, fără să schimbe providerul implicit Anthropic. Integrarea a intrat în Faza 5, parțial: comutatorul și apelul funcționează; costurile și număratul tokenilor rămân pentru un pas separat.
+OpenAI este al doilea provider de răspunsuri pentru SkillForge. Utilizatorul poate cere o a doua perspectivă pentru mesajul curent, fără să schimbe providerul implicit Anthropic. Integrarea a intrat în Faza 5: comutatorul, streamingul și măsurarea consumului funcționează.
 
 ## Cont & chei
 
@@ -33,10 +33,10 @@ OPENAI_API_KEY="your_openai_api_key"
 
 ## Cost & limite
 
-- OpenAI facturează API-ul în funcție de model și de tokenii de intrare și ieșire; prețurile se schimbă, deci verifică [pagina oficială de prețuri](https://openai.com/api/pricing/) la data folosirii.
+- La data verificării, 16 septembrie 2026, registry-ul SkillForge folosește pentru modelele activate **GPT-5: $1,25 / $10** și **GPT-5 mini: $0,25 / $2** USD per milion de tokeni (intrare / ieșire). Verifică [pagina oficială de prețuri](https://openai.com/api/pricing/) înainte de folosire, deoarece tarifele și modelele se schimbă.
 - Nu există o promisiune de utilizare gratuită pentru API; disponibilitatea și limitele depind de cont, proiect și nivelul de utilizare.
-- Rate limits sunt stabilite pe proiect și model și pot produce răspunsuri `429`.
-- La acest pas nu măsurăm tokenii și nu comparăm costurile; fiecare mesaj trimite istoricul conversației și system prompt-ul către modelul ales.
+- Rate limits sunt stabilite pe proiect și model și pot produce răspunsuri `429`. SkillForge are suplimentar o limită locală de **10 cereri pe minut per client**, cu mesaj și moment de reluare; contorul în memorie nu este o măsură de securitate distribuită.
+- Fiecare mesaj trimite istoricul conversației și system prompt-ul către modelul ales, iar UI-ul arată tokenii de intrare/ieșire și costul. Cache-ul protejează doar retrimiterile identice; regenerarea ocolește cache-ul.
 
 ## Verificare
 

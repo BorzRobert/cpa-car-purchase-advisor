@@ -7,7 +7,7 @@
 import { createAnthropic } from "@ai-sdk/anthropic";
 import { createOpenAI } from "@ai-sdk/openai";
 import { DEFAULT_MODEL_ID, DEFAULT_PROVIDER_ID, PROVIDERS } from "@/lib/providers";
-import type { ProviderId } from "@/lib/types";
+import type { ModelPricing, ProviderId } from "@/lib/types";
 
 const PROVIDER_ENV_KEYS: Record<ProviderId, string> = {
   anthropic: "ANTHROPIC_API_KEY",
@@ -19,18 +19,38 @@ export function isProviderConfigured(providerId: ProviderId): boolean {
 }
 
 export function getModel(providerId: ProviderId, modelId: string) {
-  const provider = PROVIDERS[providerId];
-  const model = provider?.models.find(candidate => candidate.id === modelId);
-  const fallbackProvider = PROVIDERS[DEFAULT_PROVIDER_ID];
-  const fallbackModel = fallbackProvider.models.find(candidate => candidate.id === DEFAULT_MODEL_ID);
-  const resolvedProviderId = model ? providerId : DEFAULT_PROVIDER_ID;
-  const resolvedModelId = model?.id ?? fallbackModel?.id ?? DEFAULT_MODEL_ID;
+  const { providerId: resolvedProviderId, modelId: resolvedModelId } = resolveModelSelection(providerId, modelId);
 
   if (resolvedProviderId === "anthropic") {
     return createAnthropic({ apiKey: process.env.ANTHROPIC_API_KEY })(resolvedModelId);
   }
 
   return createOpenAI({ apiKey: process.env.OPENAI_API_KEY })(resolvedModelId);
+}
+
+export function resolveModelSelection(
+  providerId: ProviderId,
+  modelId: string
+): {
+  providerId: ProviderId;
+  modelId: string;
+  pricing: ModelPricing;
+} {
+  const provider = PROVIDERS[providerId];
+  const model = provider?.models.find(candidate => candidate.id === modelId);
+  const fallbackProvider = PROVIDERS[DEFAULT_PROVIDER_ID];
+  const fallbackModel = fallbackProvider.models.find(candidate => candidate.id === DEFAULT_MODEL_ID);
+  const resolvedModel = model ?? fallbackModel;
+
+  if (!resolvedModel) {
+    throw new Error("Registrul nu are un model implicit valid.");
+  }
+
+  return {
+    providerId: model ? providerId : DEFAULT_PROVIDER_ID,
+    modelId: resolvedModel.id,
+    pricing: resolvedModel.pricing
+  };
 }
 
 export function isValidProviderId(value: unknown): value is ProviderId {

@@ -23,10 +23,10 @@ import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip
 import { Markdown } from "@/components/chat/markdown";
 import { getMessageText } from "@/lib/message-utils";
 import { cn } from "@/lib/utils";
-import type { UIMessage } from "ai";
+import type { AppUIMessage } from "@/lib/types";
 
 type MessageItemProps = {
-  message: UIMessage;
+  message: AppUIMessage;
   userInitials: string;
   onRegenerate: (messageId: string) => void;
   canRegenerate: boolean;
@@ -39,6 +39,15 @@ export function MessageItem({ message, userInitials, onRegenerate, canRegenerate
   const [editText, setEditText] = useState(getMessageText(message));
   const isUser = message.role === "user";
   const text = getMessageText(message);
+  const metadata = !isUser ? message.metadata : undefined;
+
+  function formatTokens(value: number | undefined): string {
+    return value === undefined ? "—" : value.toLocaleString("ro-RO");
+  }
+
+  function formatCost(value: number | undefined): string {
+    return value === undefined ? "—" : `$${value.toFixed(6)}`;
+  }
 
   /**
    * DE CE copierea are nevoie de `try/catch`:
@@ -120,6 +129,15 @@ export function MessageItem({ message, userInitials, onRegenerate, canRegenerate
             )}
           >
             <Markdown>{text}</Markdown>
+
+            {metadata && (
+              <div className="mt-3 border-t border-border/60 pt-2 text-[11px] text-muted-foreground">
+                <span>{metadata.cached ? "Din cache · " : ""}</span>
+                <span>{formatTokens(metadata.usage.inputTokens)} tokeni intrare (istoric + întrebare)</span>
+                <span> · {formatTokens(metadata.usage.outputTokens)} tokeni răspuns</span>
+                <span> · cost {formatCost(metadata.cost.total)}</span>
+              </div>
+            )}
 
             {typeof navigator !== "undefined" && navigator.clipboard && (
               <Tooltip>

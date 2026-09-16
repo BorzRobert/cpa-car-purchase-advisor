@@ -34,9 +34,9 @@ ANTHROPIC_API_KEY="your_anthropic_api_key"
 
 ## Cost & limite
 
-La data verificării, 7 septembrie 2026, Anthropic facturează separat tokenii de intrare și ieșire. Pentru modelul implicit Claude Opus 5 din registru, prețul standard este **$5 USD / milion de tokeni de intrare** și **$25 USD / milion de tokeni de ieșire**. Sursa este pagina oficială https://platform.claude.com/docs/en/about-claude/pricing; verific-o înainte de activare, deoarece prețurile și disponibilitatea modelelor se pot schimba.
+La data verificării, 16 septembrie 2026, Anthropic facturează separat tokenii de intrare și ieșire. În registry-ul SkillForge, prețurile standard sunt: **Claude Haiku 4.5: $1 / $5**, **Claude Sonnet 5: $2 / $10**, **Claude Opus 5: $5 / $25** USD per milion de tokeni (intrare / ieșire). Sursa este pagina oficială https://platform.claude.com/docs/en/about-claude/pricing; verific-o înainte de activare, deoarece prețurile și disponibilitatea modelelor se pot schimba.
 
-Factura crește cu fiecare mesaj trimis ca istoric, cu răspunsurile lungi și cu reîncercările; în această fază nu există încă limitare proprie de tokeni sau rate limiting pe utilizator. Anthropic menționează credite mici pentru conturile noi, nu un plan API gratuit permanent. Prompt caching, nefolosit aici, are tarife diferite față de intrarea standard.
+Factura crește cu fiecare mesaj trimis ca istoric, cu răspunsurile lungi și cu reîncercările. SkillForge limitează local la **10 cereri pe minut per client** și protejează retrimiterile identice prin cache; „Mai încearcă” ocolește cache-ul intenționat. Limita este în memoria unei instanțe, deci se resetează la repornire și nu înlocuiește rate limits sau autentificarea. Anthropic menționează credite mici pentru conturile noi, nu un plan API gratuit permanent. Prompt caching-ul Anthropic, nefolosit aici, are tarife diferite față de intrarea standard.
 
 Anthropic aplică limite de cereri și tokeni în funcție de nivelul contului. Când sunt depășite, SkillForge afișează un mesaj generic, fără detalii despre cont.
 

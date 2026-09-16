@@ -26,8 +26,7 @@ import { MessageList } from "@/components/chat/message-list";
 import { AppHeader } from "@/components/layout/app-header";
 import { serializeConversationJson, serializeConversationMarkdown } from "@/lib/message-utils";
 import { useAppStore, useStoreHydration } from "@/store/useAppStore";
-import type { ProviderAvailability, ProviderId } from "@/lib/types";
-import type { UIMessage } from "ai";
+import type { AppUIMessage, ProviderAvailability, ProviderId } from "@/lib/types";
 
 /** Inițialele pentru avatar. Extrase o dată, ca să nu se recalculeze la fiecare mesaj din listă. */
 function getInitials(name: string): string {
@@ -84,13 +83,13 @@ export function Chat() {
 }
 
 type ChatSessionProps = {
-  initialMessages: UIMessage[];
+  initialMessages: AppUIMessage[];
   activeConversationId: string | null;
   pendingMessage: string | null;
   hydrated: boolean;
   onCreateConversation?: (message: string) => void;
   onPendingMessageSent?: () => void;
-  onMessagesFinished?: (id: string, messages: UIMessage[]) => void;
+  onMessagesFinished?: (id: string, messages: AppUIMessage[]) => void;
 };
 
 function ChatSession({
@@ -108,23 +107,29 @@ function ChatSession({
   );
   const composerWrapperRef = useRef<HTMLDivElement>(null);
   const pendingMessageSentRef = useRef(false);
+  const forceRefreshRef = useRef(false);
   const profile = useAppStore(state => state.profile);
   const providerId = useAppStore(state => state.providerId);
   const modelId = useAppStore(state => state.modelId);
 
-  const { messages, status, sendMessage, stop, regenerate, error, setMessages, clearError } = useChat({
+  const { messages, status, sendMessage, stop, regenerate, error, setMessages, clearError } = useChat<AppUIMessage>({
     messages: initialMessages,
     transport: new DefaultChatTransport({
       api: "/api/chat",
-      prepareSendMessagesRequest: ({ messages, body }) => ({
-        body: {
-          ...body,
-          messages,
-          profile: useAppStore.getState().profile,
-          providerId: useAppStore.getState().providerId,
-          modelId: useAppStore.getState().modelId
-        }
-      })
+      prepareSendMessagesRequest: ({ messages, body }) => {
+        const forceRefresh = forceRefreshRef.current;
+        forceRefreshRef.current = false;
+        return {
+          body: {
+            ...body,
+            messages,
+            profile: useAppStore.getState().profile,
+            providerId: useAppStore.getState().providerId,
+            modelId: useAppStore.getState().modelId,
+            forceRefresh
+          }
+        };
+      }
     })
   });
 
@@ -185,6 +190,7 @@ function ChatSession({
     // Tăiem răspunsul înainte de retrimitere ca `regenerate` să înlocuiască bula, nu să adauge una nouă.
     setMessages(messages.slice(0, messageIndex));
     clearError();
+    forceRefreshRef.current = true;
     toast.info("Generez din nou răspunsul");
     void regenerate();
   }

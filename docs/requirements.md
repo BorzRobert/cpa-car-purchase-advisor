@@ -2,7 +2,7 @@
 
 > Acest fișier este **sursa de adevăr** pentru ce construim. Orice schimbare de direcție se scrie AICI, nu doar în conversație. Vezi [Cum se schimbă cerințele](#9-cum-se-schimbă-cerințele).
 >
-> Ultima actualizare: 2026-09-14 · Faza curentă: **Faza 5 — Finisaje UX** (livrată) · pas didactic: randarea sigură a răspunsurilor și editarea mesajelor
+> Ultima actualizare: 2026-09-16 · Faza curentă: **Faza 5 — Cost, cache și protecții** (livrată) · pas didactic: măsurarea consumului real raportat de provider
 >
 > Numerotarea fazelor din acest fișier e a proiectului. Materialul de curs numără separat pașii de UI („primul pas de interfață"); când cele două diferă, numerotarea de aici e cea validă.
 
@@ -243,15 +243,17 @@ Regula de lucru a cursului: **un concept nou pe fază**. Ce nu e listat într-o 
 
 ---
 
-### Faza 5 — Al doilea provider și costul _(livrată parțial)_
+### Faza 5 — Al doilea provider și costul _(livrată)_
 
 **Scop:** să demonstrăm că providerul e schimbabil și să vedem ce costă fiecare răspuns.
 
-**Intră acum:** OpenAI ca al doilea provider, în spatele aceleiași abstracții; selector de provider/model în composer, cu Anthropic primul și implicit; registru unic pentru modele; validare server-side și fallback pentru id-uri vechi; disponibilitatea calculată pe server, cu motiv afișat pentru chei lipsă; `docs/openai/README.md` și skill-ul reutilizabil pentru adăugarea altor providere.
+**Intră:** OpenAI ca al doilea provider, în spatele aceleiași abstracții; selector de provider/model în composer, cu Anthropic primul și implicit; registru unic pentru modele; validare server-side și fallback pentru id-uri vechi; disponibilitatea calculată pe server, cu motiv afișat pentru chei lipsă; `docs/openai/README.md` și skill-ul reutilizabil pentru adăugarea altor providere.
 
-**Nu intră încă:** numărul de tokeni, costul estimat per răspuns și comparația de costuri. Acestea rămân un pas separat al fazei și nu trebuie presupuse ca livrate.
+**Cost, consum și protecții:** `onFinish` primește usage-ul raportat de provider, iar metadata mesajului păstrează tokenii de intrare/ieșire, providerul, modelul, costul și dacă răspunsul a venit din cache. Tarifele sunt în registry, cu data verificării, iar formula unică este în `src/lib/cost.ts`. UI-ul arată costul lângă răspuns și totalul conversației; input-ul este etichetat „istoric + întrebare”, deoarece providerul nu separă aceste două componente în usage.
 
-**Nu intră:** rutare automată între modele în funcție de cost, cache de răspunsuri.
+Cache-ul în memorie are limită de intrări și expirare, iar cheia include provider, model, system prompt și hash-ul mesajelor. Profilul intră în system prompt, deci doi utilizatori nu împart răspunsuri. Cache-ul protejează doar retrimiterile identice; „Mai încearcă” îl ocolește explicit și răspunsul cached este redat tot în streaming, marcat în UI. Limita locală este de 10 cereri pe minut și întoarce `429` cu momentul de la care se poate reîncerca.
+
+**Nu intră:** rutare automată între modele în funcție de cost, cache extern și observabilitate persistentă.
 
 ### Sub-pas — Acțiuni pe conversație și export _(livrat)_
 
@@ -261,7 +263,7 @@ Regula de lucru a cursului: **un concept nou pe fază**. Ce nu e listat într-o 
 
 **Gata când:** acțiunile operează pe lista `useChat`, reluarea nu lasă un al doilea răspuns, exporturile se deschid ca fișiere valide, iar copierea nu produce crash pe un URL fără context securizat.
 
-**Gata acum pentru partea parțială:** schimbi providerul și modelul din composer pentru mesajul următor fără să modifici cod; un provider neconfigurat rămâne vizibil și explicat, iar cererea lui este respinsă clar cu `400`. Criteriul costului se verifică doar după livrarea sub-pasului dedicat.
+**Gata când:** schimbi providerul și modelul din composer pentru mesajul următor fără să modifici cod; costul și tokenii sunt vizibili, un răspuns identic poate fi servit din cache fără cost nou, regenerarea ocolește cache-ul, iar depășirea limitei afișează un mesaj clar și un moment de reluare.
 
 ### Sub-pas — Arhiva persistentă a conversațiilor _(livrat)_
 
@@ -371,7 +373,10 @@ Profilul conține date despre carieră: rol actual, angajator (opțional), skill
 
 ### 6.3 Cost
 
-- Costul se urmărește per provider și model (preț per milion de tokeni, separat intrare/ieșire). De la Faza 5, costul estimat al fiecărui răspuns e vizibil în UI.
+- Costul se urmărește per provider și model (preț per milion de tokeni, separat intrare/ieșire). Providerul raportează usage-ul în `onFinish`; valorile lipsă rămân necunoscute și apar ca `—`, nu ca zero.
+- Fiecare răspuns păstrează tokenii de intrare/ieșire, costul separat și totalul, iar totalul conversației reutilizează aceeași funcție din `src/lib/cost.ts`. Input-ul măsurat include system prompt-ul, istoricul retransmis și întrebarea curentă; acesta este locul unde se vede costul contextului.
+- Retrimiterea întregului istoric face ca fiecare mesaj nou să proceseze tot mai mult context; cumulată pe o conversație lungă, cheltuiala crește aproximativ cu pătratul lungimii ei. Pârghiile reale sunt un model mai mic, istoric mai scurt și mai puține retrimiteri.
+- Protecțiile actuale sunt cache-ul pentru payload-uri identice, bypass-ul explicit pentru regenerare și limita locală de 10 cereri/minut. Limiterul în memorie se resetează la repornire și se aplică separat pe instanțe, deci nu este o măsură de securitate.
 - **Cifrele concrete de preț și limitele planurilor stau în `docs/<integrare>/README.md`**, nu aici — prețurile se schimbă, și nu vrem două locuri care se contrazic.
 - Măsuri de control: limită de tokeni în răspuns, context trimis controlat (§6.2), model mai ieftin pentru sarcini simple atunci când e evident.
 

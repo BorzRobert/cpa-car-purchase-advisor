@@ -18,10 +18,12 @@ import { ScrollArea } from "@/components/ui/scroll-area";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { MessageItem } from "@/components/chat/message-item";
-import type { ChatStatus, UIMessage } from "ai";
+import type { ChatStatus } from "ai";
+import { addCosts } from "@/lib/cost";
+import type { AppUIMessage } from "@/lib/types";
 
 type MessageListProps = {
-  messages: UIMessage[];
+  messages: AppUIMessage[];
   status: ChatStatus;
   userInitials: string;
   isLoading: boolean;
@@ -31,6 +33,14 @@ type MessageListProps = {
 
 export function MessageList({ messages, status, userInitials, isLoading, onRegenerate, onEdit }: MessageListProps) {
   const bottomRef = useRef<HTMLDivElement>(null);
+  const assistantCosts = messages.flatMap(message =>
+    message.role === "assistant" && message.metadata ? [message.metadata.cost] : []
+  );
+  const conversationCost = addCosts(assistantCosts);
+
+  function formatCost(value: number | undefined): string {
+    return value === undefined ? "—" : `$${value.toFixed(6)}`;
+  }
 
   /**
    * Derularea automată la ultimul mesaj.
@@ -45,6 +55,15 @@ export function MessageList({ messages, status, userInitials, isLoading, onRegen
   return (
     <ScrollArea className="min-h-0 flex-1 bg-background/40">
       <div className="mx-auto flex w-full max-w-3xl flex-col gap-6 px-4 py-6">
+        {assistantCosts.length > 0 && (
+          <div className="self-end text-right text-xs text-muted-foreground" aria-label="Costul conversației">
+            <div>Conversație: {formatCost(conversationCost.total)}</div>
+            <div>
+              {formatCost(conversationCost.input)} intrare (istoric + întrebări) · {formatCost(conversationCost.output)}{" "}
+              răspunsuri
+            </div>
+          </div>
+        )}
         {isLoading ? <MessagesSkeleton /> : null}
 
         {!isLoading &&

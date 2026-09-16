@@ -13,6 +13,7 @@
 
 /** Rolul autorului unui mesaj. Aceleași două valori pe care le folosesc și API-urile de LLM. */
 import type { UIMessage } from "ai";
+import type { CostBreakdown, TokenUsage } from "@/lib/cost";
 
 export type Role = "user" | "assistant";
 
@@ -45,8 +46,18 @@ export type Conversation = {
   id: string;
   title: string;
   createdAt: string;
-  messages: UIMessage[];
+  messages: AppUIMessage[];
 };
+
+export type MessageMetadata = {
+  providerId: ProviderId;
+  modelId: string;
+  usage: TokenUsage;
+  cost: CostBreakdown;
+  cached: boolean;
+};
+
+export type AppUIMessage = UIMessage<MessageMetadata>;
 
 /**
  * Preferința de temă, așa cum o alege utilizatorul.
@@ -63,6 +74,13 @@ export type ProviderId = "anthropic" | "openai";
 export type ProviderModel = {
   id: string;
   label: string;
+  pricing: ModelPricing;
+};
+
+export type ModelPricing = {
+  inputPerMillion: number;
+  outputPerMillion: number;
+  checkedAt: string;
 };
 
 export type ProviderInfo = {
