@@ -172,6 +172,8 @@ public class AdvisorService {
                 tools.add(tool.toolName());
             } else if (event instanceof AdvisorEvent.Vehicles vehicles) {
                 vehicles.cards().forEach(card -> variantIds.add(card.variantId()));
+            } else if (event instanceof AdvisorEvent.Compare compare) {
+                compare.report().vehicles().forEach(card -> variantIds.add(card.variantId()));
             }
         }
 

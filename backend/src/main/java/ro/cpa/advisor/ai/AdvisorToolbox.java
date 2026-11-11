@@ -4,6 +4,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.UUID;
 import ro.cpa.advisor.domain.BuyerProfile;
+import ro.cpa.advisor.domain.EnergyPrices;
 import ro.cpa.advisor.domain.ProfilePatch;
 import ro.cpa.advisor.domain.VehicleCard;
 import ro.cpa.advisor.domain.VehicleFilter;
@@ -28,6 +29,12 @@ public interface AdvisorToolbox {
     void addToShortlist(UUID sessionId, String variantId, String note);
 
     List<VehicleCard> shortlist(UUID sessionId);
+
+    /** Profilul curent al sesiunii (gol daca n-a completat nimic). */
+    BuyerProfile profile(UUID sessionId);
+
+    /** Preturile de energie din configuratie, cu data lor; calculatorul TCO le raporteaza ca ipoteze. */
+    EnergyPrices energyPrices();
 
     record ProfileChange(BuyerProfile profile, Map<String, Object> changed) {}
 }

@@ -99,6 +99,9 @@ final class SseEventWriter implements Consumer<AdvisorEvent>, AutoCloseable {
             payload.put("summary", tool.summary());
             return payload;
         }
+        if (event instanceof AdvisorEvent.Compare compare) {
+            return compare.report();
+        }
         if (event instanceof AdvisorEvent.Failed failed) {
             Map<String, Object> problem = new LinkedHashMap<>();
             problem.put("type", URI.create("urn:cpa:problem:" + failed.code()).toString());

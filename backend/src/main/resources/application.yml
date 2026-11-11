@@ -43,6 +43,14 @@ cpa:
   stream:
     # Un comentariu SSE la fiecare 15 s, ca proxy-urile sa nu inchida un flux care tace in timp ce modelul gandeste.
     heartbeat-seconds: 15
+  pricing:
+    # Preturile energiei pentru calculatorul TCO (EUR): ORIENTATIVE si NEVERIFICATE, introduse la data de mai jos, de
+    # revizuit inainte de productie (ca si catalogul). Cumparatorul le poate inlocui cu ale lui in conversatie.
+    petrol-eur-per-liter: 1.55
+    diesel-eur-per-liter: 1.60
+    home-electricity-eur-per-kwh: 0.30
+    public-electricity-eur-per-kwh: 0.55
+    data-as-of: 2026-11-11
   cors:
     # Lista separata prin virgule; niciodata `*` (verificat la pornire).
     allowed-origins: ${CORS_ALLOWED_ORIGINS:http://localhost:3000}

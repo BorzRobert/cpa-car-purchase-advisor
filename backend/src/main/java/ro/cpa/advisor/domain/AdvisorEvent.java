@@ -75,5 +75,13 @@ public sealed interface AdvisorEvent {
         }
     }
 
+    /** Comparatie sau clasament cu scor pe criterii si TCO, pentru widgetul de comparatie. */
+    record Compare(ComparisonReport report) implements AdvisorEvent {
+        @Override
+        public String name() {
+            return "compare";
+        }
+    }
+
     record TokenUsage(int input, int output) {}
 }

@@ -6,6 +6,7 @@ import jakarta.validation.constraints.NotEmpty;
 import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Positive;
 import jakarta.validation.constraints.PositiveOrZero;
+import java.time.LocalDate;
 import java.util.List;
 import org.springframework.boot.context.properties.ConfigurationProperties;
 import org.springframework.validation.annotation.Validated;
@@ -17,7 +18,22 @@ import org.springframework.validation.annotation.Validated;
 @Validated
 @ConfigurationProperties("cpa")
 public record CpaProperties(
-        @NotNull @Valid Llm llm, @NotNull @Valid Cors cors, @NotNull @Valid Limits limits, @NotNull @Valid Stream stream) {
+        @NotNull @Valid Llm llm,
+        @NotNull @Valid Cors cors,
+        @NotNull @Valid Limits limits,
+        @NotNull @Valid Stream stream,
+        @NotNull @Valid Pricing pricing) {
+
+    /**
+     * Preturile energiei din calculatorul TCO (EUR). Cifre ORIENTATIVE, nevalidate, cu data lor: se revizuiesc inainte de
+     * productie, ca si catalogul. Cumparatorul le poate inlocui cu ale lui, prin unelte.
+     */
+    public record Pricing(
+            @Positive double petrolEurPerLiter,
+            @Positive double dieselEurPerLiter,
+            @Positive double homeElectricityEurPerKwh,
+            @Positive double publicElectricityEurPerKwh,
+            @NotNull LocalDate dataAsOf) {}
 
     /**
      * Modelul OpenAI folosit de consilier: o singura valoare, fara selector (ADR 0007, modelul din ADR 0010). Preturile

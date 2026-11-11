@@ -18,6 +18,7 @@ import ro.cpa.advisor.domain.AdvisorEvent;
 import ro.cpa.advisor.domain.AdvisorUnavailableException;
 import ro.cpa.advisor.domain.BudgetKind;
 import ro.cpa.advisor.domain.BuyerProfile;
+import ro.cpa.advisor.domain.EnergyPrices;
 import ro.cpa.advisor.domain.MessageRole;
 import ro.cpa.advisor.domain.ProfilePatch;
 import ro.cpa.advisor.domain.StreamClosedException;
@@ -51,11 +52,21 @@ class SpringAiAdvisorModelTest {
         public List<VehicleCard> shortlist(UUID sessionId) {
             return List.of();
         }
+
+        @Override
+        public BuyerProfile profile(UUID sessionId) {
+            return BuyerProfile.empty();
+        }
+
+        @Override
+        public EnergyPrices energyPrices() {
+            throw new UnsupportedOperationException();
+        }
     };
     private final SpringAiAdvisorModel advisor = new SpringAiAdvisorModel(
             ChatClient.builder(chat),
             new AdvisorTools(toolbox),
-            new CpaProperties(new CpaProperties.Llm("test-model", 1000, 20, 8, 2.0, 12.0), null, null, null));
+            new CpaProperties(new CpaProperties.Llm("test-model", 1000, 20, 8, 2.0, 12.0), null, null, null, null));
 
     private static AdvisorRequest request(String userMessage) {
         return new AdvisorRequest(UUID.randomUUID(), BuyerProfile.empty(), List.of(), userMessage);
