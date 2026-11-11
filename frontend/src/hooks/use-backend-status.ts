@@ -7,8 +7,9 @@
  * obișnuită ar eșua sau ar rămâne agățată, iar interfața ar părea stricată. Aici pingul repetă încercările și
  * expune o stare explicită „waking", ca UI-ul să spună „Se trezește consilierul…" în loc de o eroare.
  *
- * DE CE fără TanStack Query: nu e instalat până în Faza 6, iar pentru un singur apel la încărcare un `useEffect`
- * e suficient; când apare clientul real, hook-ul se înlocuiește, nu se extinde.
+ * DE CE nu TanStack Query: logica de aici nu e o simplă citire de date, ci o buclă de reîncercări cu stări intermediare
+ * („waking”, „unreachable”) și un plafon de timp; ar însemna să luptăm cu politica de reîncercare a bibliotecii. Datele
+ * propriu-zise (conversații, profil, listă scurtă) merg prin TanStack Query.
  */
 
 import { useCallback, useEffect, useState } from "react";

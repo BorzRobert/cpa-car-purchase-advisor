@@ -1,23 +1,16 @@
 /**
- * Apelurile către backend pentru starea serviciului (Faza 3, „walking skeleton").
+ * Apelurile către backend pentru starea serviciului (ping de trezire și `GET /api/v1/health`).
  *
- * DE CE există fișierul: URL-ul backend-ului vine dintr-o singură variabilă publică, iar toate apelurile îl
- * citesc de aici, nu din `process.env` împrăștiat prin componente. Clientul complet (`lib/api`, tipuri generate
- * din OpenAPI) apare în Faza 6 și înlocuiește tipul scris de mână de mai jos.
- *
- * DE CE `process.env.NEXT_PUBLIC_API_BASE_URL` apare literal: Next.js înlocuiește la `next build` doar referințele
- * scrise exact așa (nu și `process.env[nume]`), deci după ce schimbi valoarea în Vercel e nevoie de Redeploy.
+ * DE CE nu trec prin `client.ts`: aceste apeluri sunt publice și trebuie să funcționeze înainte să existe o sesiune —
+ * tocmai ele trezesc backend-ul, iar o sesiune se creează abia după ce acesta răspunde.
  */
+import { API_BASE_URL } from "@/lib/api/config";
+import type { components } from "@/lib/api/schema";
 
-export const API_BASE_URL = (process.env.NEXT_PUBLIC_API_BASE_URL ?? "").trim().replace(/\/+$/, "");
+export { API_BASE_URL };
 
-/** Forma răspunsului `GET /api/v1/health`; temporară, până la tipurile generate din OpenAPI (Faza 6). */
-export type BackendHealth = {
-  status: string;
-  service: string;
-  version: string;
-  advisorConfigured: boolean;
-};
+/** Forma răspunsului `GET /api/v1/health`, din tipurile generate. */
+export type BackendHealth = components["schemas"]["HealthResponse"];
 
 /** Cât așteptăm un singur răspuns: un backend care se trezește poate lăsa conexiunea agățată. */
 const ATTEMPT_TIMEOUT_MS = 10_000;

@@ -1,70 +1,59 @@
 /**
- * Transformările exportului de conversație, fără dependențe de browser sau store.
+ * Transformările mesajelor, ca funcții pure, fără dependențe de browser sau de React.
  *
- * DE CE există o structură intermediară comună: JSON-ul și Markdown-ul trebuie să descrie
- * exact aceleași date. Dacă fiecare format ar extrage separat mesajele, o modificare viitoare
- * ar putea ajunge într-un export și să lipsească din celălalt.
+ * DE CE aici: mesajul din interfață (`ChatMessage`) are două surse — istoricul din backend (doar text) și răspunsul
+ * aflat în curs de streaming (text + unelte + carduri). Ambele ajung la aceeași formă prin funcțiile de mai jos, iar
+ * faptul că sunt pure le face testabile fără rețea.
  */
-import type { UIMessage } from "ai";
-import type { Profile } from "@/lib/types";
+import type { AdvisorEvent, ComparisonReport, VehicleCard } from "@/lib/advisor-events";
+import type { ApiMessage } from "@/lib/api/endpoints";
 
-export type ExportSnapshot = {
-  exportedAt: string;
-  profile: Profile;
-  messages: Array<{
-    id: string;
-    role: UIMessage["role"];
-    text: string;
-  }>;
+export type ToolActivity = { name: string; status: "started" | "finished"; summary: string };
+
+export type ChatMessage = {
+  id: string;
+  role: "user" | "assistant";
+  content: string;
+  tools: ToolActivity[];
+  cards: VehicleCard[];
+  comparison: ComparisonReport | null;
 };
 
-/** Singurul loc care transformă părțile text ale unui mesaj în text exportabil. */
-export function getMessageText(message: UIMessage): string {
-  return message.parts
-    .filter(part => part.type === "text")
-    .map(part => part.text)
-    .join("");
+export function newMessage(id: string, role: ChatMessage["role"], content = ""): ChatMessage {
+  return { id, role, content, tools: [], cards: [], comparison: null };
 }
 
-export function buildExportSnapshot(messages: UIMessage[], profile: Profile, exportedAt: string): ExportSnapshot {
-  return {
-    exportedAt,
-    profile,
-    messages: messages.map(message => ({
-      id: message.id,
-      role: message.role,
-      text: getMessageText(message)
-    }))
-  };
+export function fromApiMessage(message: ApiMessage): ChatMessage {
+  return newMessage(message.id ?? crypto.randomUUID(), message.role === "USER" ? "user" : "assistant", message.content);
 }
 
-export function serializeConversationJson(messages: UIMessage[], profile: Profile, exportedAt: string): string {
-  return JSON.stringify(buildExportSnapshot(messages, profile, exportedAt), null, 2);
+/** Aplică un eveniment al fluxului pe răspunsul consilierului aflat în curs. Evenimentele fără efect vizual îl lasă neschimbat. */
+export function applyAdvisorEvent(message: ChatMessage, event: AdvisorEvent): ChatMessage {
+  switch (event.type) {
+    case "meta":
+      return { ...message, id: event.messageId };
+    case "token":
+      // Textul vine în bucăți; se concatenează, nu se înlocuiește.
+      return { ...message, content: message.content + event.delta };
+    case "tool":
+      return { ...message, tools: updateTools(message.tools, event) };
+    case "vehicles": {
+      const known = new Set(message.cards.map(card => card.variantId));
+      return { ...message, cards: [...message.cards, ...event.cards.filter(card => !known.has(card.variantId))] };
+    }
+    case "compare":
+      return { ...message, comparison: event.report };
+    default:
+      return message;
+  }
 }
 
-export function serializeConversationMarkdown(messages: UIMessage[], profile: Profile, exportedAt: string): string {
-  const snapshot = buildExportSnapshot(messages, profile, exportedAt);
-  const skills = snapshot.profile.skills.map(skill => `- ${skill.name}: ${skill.level}`).join("\n") || "- Niciun skill";
-  const conversation = snapshot.messages
-    .map(message => `### ${message.role === "user" ? "Tu" : "SkillForge"}\n\n${message.text}`)
-    .join("\n\n");
+function updateTools(tools: ToolActivity[], event: Extract<AdvisorEvent, { type: "tool" }>): ToolActivity[] {
+  const activity: ToolActivity = { name: event.name, status: event.status, summary: event.summary };
+  if (event.status === "started") return [...tools, activity];
 
-  return `# Export SkillForge
-
-- Data exportului: ${snapshot.exportedAt}
-
-## Profil
-
-- Nume: ${snapshot.profile.name}
-- Stack actual: ${snapshot.profile.stack}
-- Obiectiv: ${snapshot.profile.goal}
-
-### Skill-uri
-
-${skills}
-
-## Conversație
-
-${conversation || "Nu există mesaje în această conversație."}
-`;
+  // `finished` încheie ultimul apel pornit cu același nume (aceeași unealtă poate fi chemată de mai multe ori).
+  const index = tools.findLastIndex(tool => tool.name === event.name && tool.status === "started");
+  if (index === -1) return [...tools, activity];
+  return tools.map((tool, i) => (i === index ? activity : tool));
 }

@@ -3,76 +3,37 @@
 /**
  * Composer-ul: cutia din care utilizatorul trimite un mesaj.
  *
- * DE CE e o componentă separată, folosită în două locuri:
- * apare centrat pe ecranul de conversație nouă și lipit jos într-o conversație existentă.
- * Aceeași cutie, două poziții — dacă ar fi scrisă de două ori, comportamentul tastaturii ar
- * ajunge inevitabil diferit între ele.
+ * DE CE e o componentă separată, folosită în două locuri: apare centrat pe ecranul de conversație nouă și lipit jos
+ * într-o conversație existentă. Aceeași cutie, două poziții — comportamentul tastaturii nu trebuie să difere.
  *
- * DE CE e „controlată" (primește `value` din afară):
- * butoanele de sugestii de pe ecranul de start trebuie să pre-completeze inputul. Dacă textul
- * ar trăi în starea internă a acestei componente, sugestiile n-ar avea cum să-l scrie.
- *
- * DE CE textul NU stă în store-ul global:
- * e o ciornă de moment, nu date ale utilizatorului. În store ar fi salvat în localStorage și
- * ar reapărea, ciudat, la următoarea deschidere a aplicației.
+ * DE CE e „controlată” (primește `value` din afară): sugestiile de pe ecranul de start pre-completează inputul, iar
+ * textul e o ciornă de moment, nu date ale utilizatorului — nu stă în store (ar ajunge în `localStorage`).
  */
 
 import { useEffect, useRef } from "react";
-import { Plus, Send, Square } from "lucide-react";
-import { toast } from "sonner";
+import { Send, Square } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuGroup,
-  DropdownMenuItem,
-  DropdownMenuLabel,
-  DropdownMenuSeparator,
-  DropdownMenuTrigger
-} from "@/components/ui/dropdown-menu";
-import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
-import { Badge } from "@/components/ui/badge";
-import { PROVIDERS, PROVIDER_LIST, getModelLabel } from "@/lib/providers";
-import { useAppStore } from "@/store/useAppStore";
-import type { ChatStatus } from "ai";
-import type { ProviderAvailability, ProviderId } from "@/lib/types";
 
 /** Înălțimea maximă a cutiei de text. Peste ea, textul se derulează în loc să împingă ecranul. */
 const MAX_HEIGHT_PX = 200;
+/** Limita backend-ului pentru un mesaj (`PostMessageRequest.content`); un text mai lung se refuză, nu se taie. */
+const MAX_MESSAGE_LENGTH = 4000;
 
 type ChatInputProps = {
   value: string;
   onValueChange: (value: string) => void;
   onSubmit: () => void;
-  status: ChatStatus;
+  streaming: boolean;
   onStop: () => void;
-  providerId: ProviderId;
-  modelId: string;
-  providerAvailability: Record<ProviderId, ProviderAvailability> | null;
 };
 
-export function ChatInput({
-  value,
-  onValueChange,
-  onSubmit,
-  status,
-  onStop,
-  providerId,
-  modelId,
-  providerAvailability
-}: ChatInputProps) {
+export function ChatInput({ value, onValueChange, onSubmit, streaming, onStop }: ChatInputProps) {
   const textareaRef = useRef<HTMLTextAreaElement>(null);
-  const selectProvider = useAppStore(state => state.selectProvider);
-  const setModel = useAppStore(state => state.setModel);
-
-  const isResponding = status === "submitted" || status === "streaming";
 
   /**
-   * Creșterea în înălțime odată cu textul.
-   * DE CE se face din JavaScript și nu din CSS: un `<textarea>` nu se poate dimensiona după
-   * conținut din CSS. Trucul e să resetăm înălțimea la `auto` (ca `scrollHeight` să reflecte
-   * conținutul real, nu înălțimea de dinainte) și abia apoi s-o fixăm.
+   * Creșterea în înălțime odată cu textul. Se face din JavaScript fiindcă un `<textarea>` nu se poate dimensiona după
+   * conținut din CSS: resetăm la `auto` ca `scrollHeight` să reflecte conținutul real, apoi fixăm înălțimea.
    */
   useEffect(() => {
     const el = textareaRef.current;
@@ -82,15 +43,13 @@ export function ChatInput({
   }, [value]);
 
   /**
-   * DE CE Enter trimite și Shift+Enter face rând nou:
-   * e convenția din orice aplicație de chat — cel mai frecvent gest primește tasta cea mai
-   * ieftină. `isComposing` protejează scrierea cu diacritice sau IME: acolo Enter confirmă
-   * caracterul, iar dacă am trimite mesajul, textul s-ar rupe la jumătate.
+   * Enter trimite, Shift+Enter face rând nou. `isComposing` protejează scrierea cu diacritice sau IME: acolo Enter
+   * confirmă caracterul, iar dacă am trimite mesajul, textul s-ar rupe la jumătate.
    */
   function handleKeyDown(event: React.KeyboardEvent<HTMLTextAreaElement>) {
     if (event.key !== "Enter" || event.shiftKey || event.nativeEvent.isComposing) return;
     event.preventDefault();
-    if (isResponding || !value.trim()) return;
+    if (streaming || !value.trim()) return;
     onSubmit();
   }
 
@@ -102,109 +61,24 @@ export function ChatInput({
         onChange={event => onValueChange(event.target.value)}
         onKeyDown={handleKeyDown}
         rows={1}
-        placeholder="Întreabă-mă ce să înveți mai departe…"
-        aria-label="Mesaj pentru SkillForge"
-        // `resize-none` fiindcă înălțimea o gestionăm noi; fără bordură proprie, pentru că
-        // bordura o desenează cutia din jur — altfel s-ar vedea două.
+        maxLength={MAX_MESSAGE_LENGTH}
+        placeholder="Descrie ce mașină cauți sau întreabă-mă orice despre cumpărare…"
+        aria-label="Mesaj pentru consilier"
+        // `resize-none` fiindcă înălțimea o gestionăm noi; fără bordură proprie, pentru că bordura o desenează cutia din jur.
         className="max-h-[200px] min-h-0 resize-none border-0 bg-transparent px-4 py-3 text-base shadow-none focus-visible:ring-0 md:text-sm dark:bg-transparent"
       />
 
-      {/* Rândul de jos AL CUTIEI: stânga = atașamente (rezervat), dreapta = provider + trimite. */}
-      <div className="flex items-center justify-between gap-2 px-2 pb-2">
-        <Tooltip>
-          <TooltipTrigger
-            render={
-              <Button
-                variant="ghost"
-                size="icon-sm"
-                aria-label="Adaugă atașament"
-                onClick={() => toast.info("Atașamentele intră la Modul 6.")}
-              />
-            }
-          >
-            <Plus />
-          </TooltipTrigger>
-          <TooltipContent>Atașamente (Modul 6)</TooltipContent>
-        </Tooltip>
-
-        <div className="flex items-center gap-1">
-          {/*
-            DE CE providerul se alege din composer, nu doar din preferințe:
-            e o decizie pe care o iei chiar înainte de a trimite mesajul — la Faza 5, când vom
-            compara costuri, vei vrea să schimbi providerul între două întrebări, nu să intri
-            în setări. Lista se construiește din registrul de providere, deci un provider nou
-            apare aici fără să modificăm componenta.
-          */}
-          <DropdownMenu>
-            <DropdownMenuTrigger
-              render={<Button variant="ghost" size="sm" className="gap-1.5 font-normal text-muted-foreground" />}
-            >
-              <span className="text-foreground">{PROVIDERS[providerId].label}</span>
-              <span className="hidden sm:inline">{getModelLabel(providerId, modelId)}</span>
-            </DropdownMenuTrigger>
-            <DropdownMenuContent align="end" className="w-64">
-              {PROVIDER_LIST.map((provider, index) => (
-                <div key={provider.id}>
-                  {index > 0 && <DropdownMenuSeparator />}
-                  <DropdownMenuGroup>
-                    <DropdownMenuLabel className="flex items-center gap-2">
-                      {provider.label}
-                      {providerAvailability && !providerAvailability[provider.id]?.configured && (
-                        <Badge variant="secondary" className="font-normal">
-                          indisponibil
-                        </Badge>
-                      )}
-                    </DropdownMenuLabel>
-                    {provider.models.map(model => {
-                      const availability = providerAvailability?.[provider.id];
-                      const disabled = availability ? !availability.configured : true;
-                      const item = (
-                        <DropdownMenuItem
-                          key={model.id}
-                          disabled={disabled}
-                          onClick={() => {
-                            if (disabled) return;
-                            if (provider.id !== providerId) selectProvider(provider.id);
-                            setModel(model.id);
-                          }}
-                        >
-                          <span className="flex-1">{model.label}</span>
-                          {provider.id === providerId && model.id === modelId && (
-                            <span className="text-xs text-muted-foreground">activ</span>
-                          )}
-                        </DropdownMenuItem>
-                      );
-
-                      return disabled && availability?.reason ? (
-                        <Tooltip key={model.id}>
-                          <TooltipTrigger render={item} />
-                          <TooltipContent>{availability.reason}</TooltipContent>
-                        </Tooltip>
-                      ) : (
-                        item
-                      );
-                    })}
-                  </DropdownMenuGroup>
-                </div>
-              ))}
-            </DropdownMenuContent>
-          </DropdownMenu>
-
-          {/*
-            DE CE UN SINGUR buton care comută între „trimite" și „stop":
-            sunt acțiuni care nu pot exista simultan — cât timp răspunsul se scrie, nu ai ce
-            trimite. Două butoane ar însemna unul mereu dezactivat, adică zgomot.
-          */}
-          {isResponding ? (
-            <Button size="icon-sm" variant="secondary" onClick={onStop} aria-label="Oprește răspunsul">
-              <Square />
-            </Button>
-          ) : (
-            <Button size="icon-sm" onClick={onSubmit} disabled={!value.trim()} aria-label="Trimite mesajul">
-              <Send />
-            </Button>
-          )}
-        </div>
+      <div className="flex items-center justify-end px-2 pb-2">
+        {/* Un singur buton care comută între „trimite” și „stop”: nu pot exista simultan. */}
+        {streaming ? (
+          <Button size="icon-sm" variant="secondary" onClick={onStop} aria-label="Oprește răspunsul">
+            <Square />
+          </Button>
+        ) : (
+          <Button size="icon-sm" onClick={onSubmit} disabled={!value.trim()} aria-label="Trimite mesajul">
+            <Send />
+          </Button>
+        )}
       </div>
     </div>
   );

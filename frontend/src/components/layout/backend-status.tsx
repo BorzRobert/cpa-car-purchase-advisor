@@ -50,7 +50,7 @@ const VIEWS: Record<Status["phase"], View> = {
     label: status => (status.phase === "ready" ? `Backend conectat · v${status.health.version}` : ""),
     hint: status =>
       status.phase === "ready" && !status.health.advisorConfigured
-        ? "Consilierul nu e configurat încă (fără cheie)."
+        ? "Consilierul nu e activat încă pe acest server (fără cheie)."
         : null
   },
   unreachable: {

@@ -1,25 +1,20 @@
 "use client";
 
 /**
- * Sidebar-ul: „+ New" sus, lista de conversații la mijloc, utilizatorul jos.
+ * Sidebar-ul: „+ Nouă” sus, lista de conversații la mijloc, starea backend-ului și preferințele jos.
  *
- * DE CE sus e UN SINGUR buton:
- * SkillForge face un lucru — te ajută să înveți spre un obiectiv. Un meniu cu „Projects",
- * „Artifacts", „Scheduled" ar sugera funcționalități care nu există și ar dilua exact mesajul
- * care contează. Restul (profil, temă, providere) sunt setări, deci stau în preferințe.
+ * DE CE sus e UN SINGUR buton: CPA face un lucru — te ajută să alegi o mașină. Un meniu cu funcții care nu există ar
+ * dilua mesajul. Restul (nevoi, listă scurtă, temă) sunt setări, deci stau în preferințe.
  *
- * DE CE lista de conversații e centrul sidebar-ului:
- * memoria între sesiuni e o cerință de bază (`docs/requirements.md` §4). Lista e dovada
- * vizibilă că aplicația ține minte — de asta ocupă tot spațiul dintre buton și utilizator.
+ * DE CE lista de conversații vine din backend: memoria între sesiuni e o cerință de bază, iar backend-ul e arhiva ei.
+ * Lista este dovada vizibilă că aplicația ține minte, de aceea ocupă tot spațiul dintre buton și subsol.
  *
- * DE CE folosim componenta `sidebar` de la shadcn și nu un `<aside>` scris de mână:
- * ea rezolvă deja partea grea — pe ecran mic sidebar-ul devine un `Sheet` (panou glisant),
- * are stare deschis/închis, scurtătură de tastatură și gestionează focusul. Rescris manual,
- * ar fi cod de întreținut fără niciun câștig.
+ * DE CE folosim componenta `sidebar` de la shadcn: pe ecran mic devine un `Sheet`, are stare deschis/închis, scurtătură
+ * de tastatură și gestionează focusul.
  */
 
 import { useState } from "react";
-import { ChevronUp, MoreHorizontal, Pencil, Plus, Trash2 } from "lucide-react";
+import { ChevronUp, MoreHorizontal, Pencil, Plus, Settings, Trash2 } from "lucide-react";
 import { toast } from "sonner";
 import {
   Sidebar,
@@ -35,7 +30,6 @@ import {
   useSidebar
 } from "@/components/ui/sidebar";
 import { ScrollArea } from "@/components/ui/scroll-area";
-import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
 import {
@@ -47,60 +41,60 @@ import {
 import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { useAppStore, useStoreHydration } from "@/store/useAppStore";
-import type { Conversation } from "@/lib/types";
-import { AuthConfiguredOnly, AuthNotConfiguredOnly } from "@/components/auth/auth-provider";
-import { AuthSidebarUser } from "@/components/auth/auth-controls";
 import { BackendStatus } from "@/components/layout/backend-status";
+import { useConversations, useDeleteConversation, useRenameConversation } from "@/hooks/use-conversations";
+import { describeError } from "@/lib/api/errors";
+import type { Conversation } from "@/lib/api/endpoints";
+import { useAppStore } from "@/store/useAppStore";
 
 export function AppSidebar() {
-  const hydrated = useStoreHydration();
   const { isMobile, setOpenMobile } = useSidebar();
 
-  const conversations = useAppStore(state => state.conversations);
+  const conversations = useConversations();
+  const rename = useRenameConversation();
+  const remove = useDeleteConversation();
   const activeConversationId = useAppStore(state => state.activeConversationId);
-  const profile = useAppStore(state => state.profile);
-  const startNewConversation = useAppStore(state => state.startNewConversation);
-  const selectConversation = useAppStore(state => state.selectConversation);
-  const renameConversation = useAppStore(state => state.renameConversation);
-  const deleteConversation = useAppStore(state => state.deleteConversation);
+  const setActiveConversation = useAppStore(state => state.setActiveConversation);
   const openSettings = useAppStore(state => state.openSettings);
 
   /** Conversația aflată în redenumire. `null` = dialogul e închis. */
   const [renaming, setRenaming] = useState<Conversation | null>(null);
   const [renameValue, setRenameValue] = useState("");
 
-  /**
-   * DE CE închidem sidebar-ul după selecție, dar numai pe mobil:
-   * pe telefon sidebar-ul acoperă conversația — dacă ar rămâne deschis, ai alege un chat și
-   * n-ai vedea rezultatul. Pe desktop stă lângă conținut, deci nu deranjează.
-   */
+  /** Pe telefon sidebar-ul acoperă conversația; dacă ar rămâne deschis după selecție, n-ai vedea rezultatul. */
   function closeOnMobile() {
     if (isMobile) setOpenMobile(false);
   }
 
   function handleNew() {
-    startNewConversation();
+    setActiveConversation(null);
     closeOnMobile();
   }
 
   function handleSelect(id: string) {
-    selectConversation(id);
+    setActiveConversation(id);
     closeOnMobile();
   }
 
   function handleDelete(conversation: Conversation) {
-    deleteConversation(conversation.id);
-    // Confirmarea e necesară: rândul dispare din listă, iar fără mesaj n-ai cum să știi dacă
-    // ai șters ce voiai sau ai ratat click-ul.
-    toast.success(`Conversație ștearsă: „${conversation.title}"`);
+    if (!conversation.id) return;
+    remove.mutate(conversation.id, {
+      // Confirmarea e necesară: rândul dispare din listă, iar fără mesaj n-ai cum să știi dacă ai șters ce voiai.
+      onSuccess: () => toast.success(`Conversație ștearsă: „${conversation.title}"`),
+      onError: error => toast.error(describeError(error).title)
+    });
   }
 
   function submitRename() {
-    if (!renaming) return;
-    renameConversation(renaming.id, renameValue);
+    if (!renaming?.id) return;
+    rename.mutate(
+      { id: renaming.id, title: renameValue.trim() },
+      {
+        onSuccess: () => toast.success("Titlu actualizat"),
+        onError: error => toast.error(describeError(error).title)
+      }
+    );
     setRenaming(null);
-    toast.success("Titlu actualizat");
   }
 
   return (
@@ -108,94 +102,91 @@ export function AppSidebar() {
       <Sidebar>
         <SidebarHeader className="gap-3 p-3">
           <div className="flex items-center gap-2 px-1">
-            {/*
-              Marca aplicației, desenată din tokenii temei.
-              DE CE nu o imagine: un pătrat colorat cu inițialele se adaptează singur la temă
-              și nu adaugă o cerere de rețea pentru ceva ce e, deocamdată, un placeholder.
-            */}
+            {/* Marca, desenată din tokenii temei: se adaptează singură la temă și nu adaugă o cerere de rețea. */}
             <span className="grid size-6 place-items-center rounded-md bg-primary text-[11px] font-semibold text-primary-foreground">
-              SF
+              C
             </span>
-            <span className="text-base font-semibold tracking-tight">SkillForge</span>
+            <span className="text-base font-semibold tracking-tight">CPA</span>
           </div>
 
           <Button onClick={handleNew} className="w-full justify-start gap-2">
             <Plus />
-            New
+            Conversație nouă
           </Button>
         </SidebarHeader>
 
         {/*
-          `overflow-hidden` pe container, derulare doar în `ScrollArea`.
-          DE CE: `SidebarContent` are implicit `overflow-auto`, iar cu o listă lungă am fi avut
-          două zone derulabile una în alta — două bare de scroll și o senzație de „lipicios".
-          Aici stabilim clar cine derulează: lista, nu panoul.
+          `overflow-hidden` pe container, derulare doar în `ScrollArea`: `SidebarContent` are implicit `overflow-auto`,
+          iar cu o listă lungă am fi avut două zone derulabile una în alta.
         */}
         <SidebarContent className="overflow-hidden">
           <SidebarGroup className="min-h-0 flex-1">
-            <SidebarGroupLabel>Chats and tasks</SidebarGroupLabel>
+            <SidebarGroupLabel>Conversații</SidebarGroupLabel>
 
-            {/*
-              DE CE ScrollArea și nu `overflow-y-auto`:
-              lista crește nelimitat, iar bara de derulare nativă arată diferit pe fiecare
-              sistem de operare. ScrollArea o normalizează și o ascunde până la hover, deci
-              lista nu sare în lățime când apare bara.
-            */}
             <ScrollArea className="min-h-0 flex-1">
               <SidebarMenu>
-                {!hydrated
-                  ? [0, 1, 2, 3, 4].map(index => (
-                      <SidebarMenuItem key={index} className="px-2 py-1.5">
-                        <Skeleton className="h-4 w-full" />
-                      </SidebarMenuItem>
-                    ))
-                  : conversations.map(conversation => (
-                      <SidebarMenuItem key={conversation.id}>
-                        <SidebarMenuButton
-                          isActive={conversation.id === activeConversationId}
-                          onClick={() => handleSelect(conversation.id)}
-                          className="pr-8"
+                {conversations.isPending &&
+                  [0, 1, 2, 3, 4].map(index => (
+                    <SidebarMenuItem key={index} className="px-2 py-1.5">
+                      <Skeleton className="h-4 w-full" />
+                    </SidebarMenuItem>
+                  ))}
+
+                {conversations.data?.map(conversation => (
+                  <SidebarMenuItem key={conversation.id}>
+                    <SidebarMenuButton
+                      isActive={conversation.id === activeConversationId}
+                      onClick={() => conversation.id && handleSelect(conversation.id)}
+                      className="pr-8"
+                    >
+                      <span className="truncate">{conversation.title ?? "Conversație nouă"}</span>
+                    </SidebarMenuButton>
+
+                    {/* Meniul pe rând apare la hover: cinci rânduri cu câte un buton mereu vizibil ar face lista o bară de unelte. */}
+                    <DropdownMenu>
+                      <DropdownMenuTrigger
+                        render={
+                          <SidebarMenuAction
+                            showOnHover
+                            aria-label={`Acțiuni pentru ${conversation.title ?? "conversație"}`}
+                          />
+                        }
+                      >
+                        <MoreHorizontal />
+                      </DropdownMenuTrigger>
+                      <DropdownMenuContent align="start" side="right" className="w-44">
+                        <DropdownMenuItem
+                          onClick={() => {
+                            setRenaming(conversation);
+                            setRenameValue(conversation.title ?? "");
+                          }}
                         >
-                          <span className="truncate">{conversation.title}</span>
-                        </SidebarMenuButton>
+                          <Pencil />
+                          Redenumește
+                        </DropdownMenuItem>
+                        <DropdownMenuItem variant="destructive" onClick={() => handleDelete(conversation)}>
+                          <Trash2 />
+                          Șterge
+                        </DropdownMenuItem>
+                      </DropdownMenuContent>
+                    </DropdownMenu>
+                  </SidebarMenuItem>
+                ))}
 
-                        {/*
-                          Meniul pe rând, vizibil la hover (`showOnHover`).
-                          DE CE ascuns implicit: cinci rânduri cu câte un buton mereu vizibil ar
-                          transforma lista într-o bară de unelte. Acțiunile apar când ești pe rând.
-                        */}
-                        <DropdownMenu>
-                          <DropdownMenuTrigger
-                            render={
-                              <SidebarMenuAction showOnHover aria-label={`Acțiuni pentru ${conversation.title}`} />
-                            }
-                          >
-                            <MoreHorizontal />
-                          </DropdownMenuTrigger>
-                          <DropdownMenuContent align="start" side="right" className="w-44">
-                            <DropdownMenuItem
-                              onClick={() => {
-                                setRenaming(conversation);
-                                setRenameValue(conversation.title);
-                              }}
-                            >
-                              <Pencil />
-                              Redenumește
-                            </DropdownMenuItem>
-                            <DropdownMenuItem variant="destructive" onClick={() => handleDelete(conversation)}>
-                              <Trash2 />
-                              Șterge
-                            </DropdownMenuItem>
-                          </DropdownMenuContent>
-                        </DropdownMenu>
-                      </SidebarMenuItem>
-                    ))}
+                {conversations.isError && (
+                  <div className="flex flex-col items-start gap-2 px-2 py-4 text-sm text-muted-foreground">
+                    <p>Nu am putut încărca conversațiile.</p>
+                    <Button variant="outline" size="xs" onClick={() => void conversations.refetch()}>
+                      Reîncearcă
+                    </Button>
+                  </div>
+                )}
 
-                {hydrated && conversations.length === 0 && (
-                  // Starea goală a listei: fără ea, un utilizator care și-a șters tot ar vedea
-                  // un panou pustiu și ar crede că aplicația s-a stricat.
+                {conversations.data?.length === 0 && (
+                  // Starea goală: fără ea, un utilizator care și-a șters tot ar vedea un panou pustiu.
                   <p className="px-2 py-6 text-sm text-muted-foreground">
-                    Nicio conversație încă. Apasă <span className="font-medium text-foreground">New</span> ca să începi.
+                    Nicio conversație încă. Apasă <span className="font-medium text-foreground">Conversație nouă</span>{" "}
+                    ca să începi.
                   </p>
                 )}
               </SidebarMenu>
@@ -204,48 +195,27 @@ export function AppSidebar() {
         </SidebarContent>
 
         <SidebarFooter>
-          {/* Starea backend-ului deasupra rândului de utilizator: informație de fundal, nu o acțiune. */}
+          {/* Starea backend-ului deasupra butonului de preferințe: informație de fundal, nu o acțiune. */}
           <BackendStatus />
-          {/*
-            Rândul de utilizator = intrarea în preferințe.
-            DE CE aici și nu un buton „Setări" în header: e locul unde toată lumea caută
-            setările de cont, iar header-ul rămâne curat. `ChevronUp` anunță că se deschide
-            ceva peste conținut, nu că se navighează în altă parte.
-          */}
           <SidebarMenu>
             <SidebarMenuItem>
-              <AuthConfiguredOnly>
-                <AuthSidebarUser onSettings={openSettings} />
-              </AuthConfiguredOnly>
-              <AuthNotConfiguredOnly>
-                <SidebarMenuButton
-                  size="lg"
-                  onClick={() => {
-                    openSettings();
-                    closeOnMobile();
-                  }}
-                  aria-label="Deschide preferințele"
-                >
-                  <Avatar className="size-7">
-                    <AvatarFallback className="bg-muted text-xs">
-                      {profile.name.slice(0, 2).toUpperCase()}
-                    </AvatarFallback>
-                  </Avatar>
-                  <span className="flex-1 truncate text-left">{profile.name}</span>
-                  <ChevronUp className="text-muted-foreground" />
-                </SidebarMenuButton>
-              </AuthNotConfiguredOnly>
+              <SidebarMenuButton
+                onClick={() => {
+                  openSettings();
+                  closeOnMobile();
+                }}
+                aria-label="Deschide preferințele"
+              >
+                <Settings />
+                <span className="flex-1 truncate text-left">Preferințe</span>
+                <ChevronUp className="text-muted-foreground" />
+              </SidebarMenuButton>
             </SidebarMenuItem>
           </SidebarMenu>
         </SidebarFooter>
       </Sidebar>
 
-      {/*
-        Dialogul de redenumire.
-        DE CE dialog și nu editare direct în listă (`contentEditable`):
-        editarea în listă e greu de nimerit cu mouse-ul, nu are buton de anulare clar și se
-        comportă imprevizibil pe mobil. Un dialog cu `Input` + `Label` e explicit și accesibil.
-      */}
+      {/* Dialog și nu editare direct în listă: e explicit, are buton de anulare și se comportă previzibil pe mobil. */}
       <Dialog open={renaming !== null} onOpenChange={open => !open && setRenaming(null)}>
         <DialogContent className="sm:max-w-md">
           <DialogHeader>
@@ -256,9 +226,10 @@ export function AppSidebar() {
             <Input
               id="rename-conversation"
               value={renameValue}
+              maxLength={120}
               onChange={event => setRenameValue(event.target.value)}
               onKeyDown={event => {
-                if (event.key === "Enter") submitRename();
+                if (event.key === "Enter" && renameValue.trim()) submitRename();
               }}
               autoFocus
             />

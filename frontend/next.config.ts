@@ -14,6 +14,10 @@ import type { NextConfig } from "next";
  * contextul de build al clientului, iar orice valoare pusă în el poate ajunge în bundle.
  * Secretele stau în `.env.local` și se citesc doar în cod de server.
  */
-const nextConfig: NextConfig = {};
+/**
+ * `agentRules: false`: `next dev` ar genera singur `AGENTS.md` și `CLAUDE.md` în `frontend/`; instrucțiunile pentru
+ * agenți au o singură sursă, `AGENTS.md` din rădăcina repo-ului (vezi secțiunea 9 din el).
+ */
+const nextConfig: NextConfig = { agentRules: false };
 
 export default nextConfig;

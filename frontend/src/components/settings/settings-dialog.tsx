@@ -3,39 +3,26 @@
 /**
  * Preferințele: fereastră separată, cu navigație în stânga și conținut în dreapta.
  *
- * DE CE `Dialog` și nu un panou inline sau un ecran propriu:
- * setările sunt o paranteză, nu o destinație. Un panou inline ar împinge conversația din
- * layout; un ecran separat (rută `/settings`) ar însemna că ieși din conversație, pierzi
- * contextul și trebuie să navighezi înapoi. Dialogul le rezolvă pe amândouă: apare peste,
- * se închide cu Escape, iar conversația rămâne exact unde era.
+ * DE CE `Dialog` și nu un panou inline sau un ecran propriu: setările sunt o paranteză, nu o destinație. Dialogul apare
+ * peste, se închide cu Escape, iar conversația rămâne exact unde era.
  *
- * DE CE două panouri și nu o listă lungă cu tot:
- * preferințele vor crește (la Faza 6 „Memorie", la Faza 9 „Cont"). Cu navigație laterală,
- * fiecare secțiune nouă e o intrare în registru; într-o listă lungă, ar fi încă un derulaj.
- *
- * DE CE starea de deschidere stă în store și nu aici:
- * dialogul se deschide de la rândul de utilizator din sidebar — o componentă care nu-l
+ * DE CE starea de deschidere stă în store: dialogul se deschide de la butonul din sidebar — o componentă care nu-l
  * conține. Prin store, orice buton din aplicație poate deschide direct secțiunea potrivită.
  */
 
-import { Info, Settings, Sparkles, UserRound } from "lucide-react";
+import { ListChecks, Settings, UserRound } from "lucide-react";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Separator } from "@/components/ui/separator";
-import { AboutForm } from "@/components/settings/about-form";
 import { AppearanceForm } from "@/components/settings/appearance-form";
 import { ProfileForm } from "@/components/settings/profile-form";
-import { ProvidersForm } from "@/components/settings/providers-form";
+import { ShortlistPanel } from "@/components/settings/shortlist-panel";
 import { useAppStore, type SettingsSection } from "@/store/useAppStore";
 import { cn } from "@/lib/utils";
 
 /**
- * Registrul de secțiuni: id → etichetă, iconiță, descriere, conținut.
- *
- * DE CE registru și nu `if (section === "general") ... else if (...)`:
- * navigația din stânga și panoul din dreapta se generează amândouă din aceeași sursă. Așa e
- * imposibil să adaugi o intrare în meniu fără conținut, sau invers — greșeala clasică atunci
- * când cele două liste sunt scrise separat.
+ * Registrul de secțiuni: id → etichetă, iconiță, descriere, conținut. Navigația din stânga și panoul din dreapta se
+ * generează din aceeași sursă, deci nu poți adăuga o intrare în meniu fără conținut, sau invers.
  */
 const SECTIONS: {
   id: SettingsSection;
@@ -48,29 +35,22 @@ const SECTIONS: {
     id: "general",
     label: "General",
     icon: Settings,
-    description: "Cum arată și cum se comportă aplicația.",
+    description: "Cum arată aplicația.",
     Content: AppearanceForm
   },
   {
     id: "profil",
-    label: "Profilul tău",
+    label: "Nevoile tale",
     icon: UserRound,
-    description: "Din datele astea se va construi contextul trimis agentului.",
+    description: "Din datele astea știe consilierul ce să caute și cum să calculeze.",
     Content: ProfileForm
   },
   {
-    id: "providere",
-    label: "Providere",
-    icon: Sparkles,
-    description: "Ce model de limbaj folosește agentul.",
-    Content: ProvidersForm
-  },
-  {
-    id: "despre",
-    label: "Despre aplicație",
-    icon: Info,
-    description: "Cum ajunge treptat în interfață un răspuns trimis de server.",
-    Content: AboutForm
+    id: "lista",
+    label: "Lista scurtă",
+    icon: ListChecks,
+    description: "Variantele pe care ți le-ai salvat pentru comparație.",
+    Content: ShortlistPanel
   }
 ];
 
@@ -85,21 +65,16 @@ export function SettingsDialog() {
   return (
     <Dialog open={open} onOpenChange={setOpen}>
       {/*
-        `p-0 gap-0` anulează spațierea implicită a dialogului: aici marginile le desenează
-        cele două panouri, altfel ar apărea un chenar de aer între ele.
-        Înălțimea fixă (`h-[min(36rem,90vh)]`) e ce ține navigația pe loc când conținutul
-        din dreapta e mai lung — fără ea, fereastra ar sălta la fiecare schimbare de secțiune.
+        `p-0 gap-0` anulează spațierea implicită: marginile le desenează cele două panouri. Înălțimea fixă ține
+        navigația pe loc când conținutul din dreapta e mai lung.
       */}
       <DialogContent className="grid h-[min(36rem,90vh)] w-full gap-0 overflow-hidden p-0 sm:max-w-3xl md:grid-cols-[13rem_1fr]">
         <DialogHeader className="sr-only">
           <DialogTitle>Preferințe</DialogTitle>
-          <DialogDescription>Setările aplicației, profilul tău și providerul de LLM.</DialogDescription>
+          <DialogDescription>Setările aplicației, nevoile tale de cumpărător și lista scurtă.</DialogDescription>
         </DialogHeader>
 
-        {/*
-          Panoul de navigație. Pe mobil devine un rând orizontal deasupra conținutului:
-          o coloană de 13rem ar mânca jumătate din lățimea unui telefon.
-        */}
+        {/* Pe mobil devine un rând orizontal deasupra conținutului: o coloană de 13rem ar mânca jumătate din lățime. */}
         <nav className="flex shrink-0 gap-1 overflow-x-auto border-b bg-muted/40 p-2 md:flex-col md:overflow-visible md:border-r md:border-b-0 md:p-3">
           <span className="hidden px-2 pb-1 text-xs font-medium text-muted-foreground md:block">Setări</span>
           {SECTIONS.map(item => (
@@ -119,11 +94,7 @@ export function SettingsDialog() {
           ))}
         </nav>
 
-        {/*
-          DE CE un `div` nativ, nu `ScrollArea`: wrapper-ul intern al Radix se dimensionează
-          după conținut, iar un copil cu `flex-1` nu mai poate ancora bara de jos. Înălțimea
-          definită a acestui panou lasă secțiunii „Despre aplicație” spațiul real disponibil.
-        */}
+        {/* `div` nativ, nu `ScrollArea`: wrapper-ul intern al Radix se dimensionează după conținut și nu ancorează bara de jos. */}
         <div className="h-full min-h-0 overflow-y-auto">
           <div className="flex h-full min-h-0 flex-col gap-6 p-6">
             <div className="flex flex-col gap-1">

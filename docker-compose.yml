@@ -1,0 +1,44 @@
+# Stiva locala completa: PostgreSQL + backend-ul Java. Frontend-ul se pornește separat (`cd frontend && npm run dev`).
+#
+# De ce există: în producție backend-ul vorbește cu Neon (PostgreSQL), iar migrările Flyway sunt scrise pentru el; local
+# vrem aceeași bază, nu H2, ca să prindem diferențele înainte de deploy. Pornire: `docker compose up --build`.
+#
+# Cheia OpenAI NU stă aici. Dacă vrei răspunsuri reale, exportă `OPENAI_API_KEY` în shell (sau pune-o într-un `.env`
+# în rădăcina repo-ului, care este ignorat de git) înainte de `docker compose up`. Fără ea, backend-ul pornește și
+# consilierul răspunde `503 advisor-not-configured`, iar UI-ul arată starea „consilier neactivat”.
+
+services:
+  postgres:
+    image: postgres:17-alpine
+    environment:
+      POSTGRES_DB: cpa
+      POSTGRES_USER: cpa
+      # Parolă de unică folosință, doar pentru baza locală din acest container; nu se refolosește nicăieri.
+      POSTGRES_PASSWORD: cpa-local-only
+    ports:
+      - "5432:5432"
+    volumes:
+      - cpa-pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U cpa -d cpa"]
+      interval: 3s
+      timeout: 3s
+      retries: 20
+
+  backend:
+    build: ./backend
+    depends_on:
+      postgres:
+        condition: service_healthy
+    ports:
+      - "8080:8080"
+    environment:
+      SPRING_DATASOURCE_URL: jdbc:postgresql://postgres:5432/cpa
+      SPRING_DATASOURCE_USERNAME: cpa
+      SPRING_DATASOURCE_PASSWORD: cpa-local-only
+      CORS_ALLOWED_ORIGINS: http://localhost:3000
+      OPENAI_API_KEY: ${OPENAI_API_KEY:-}
+      CPA_LLM_MODEL: ${CPA_LLM_MODEL:-gpt-5.6-terra}
+
+volumes:
+  cpa-pgdata:

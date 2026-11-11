@@ -8,4 +8,6 @@ node_modules
 out
 coverage
 package-lock.json
+# Generat din docs/architecture/openapi.json cu `npm run api:types`; nu se editează și nu se formatează de mână.
+src/lib/api/schema.d.ts
 .DS_Store
