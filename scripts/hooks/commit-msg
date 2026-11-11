@@ -1,0 +1,17 @@
+#!/bin/sh
+# Impune formatul `CPA-<titlu-kebab>` pe prima linie a mesajului de commit (docs/plan.md §8),
+# ca istoricul transformării să fie ușor de filtrat și de citit.
+# Activare: git config core.hooksPath scripts/hooks
+
+first_line=$(head -n 1 "$1")
+
+# Mesajele generate de git pentru merge/revert nu pot fi rescrise de noi.
+case "$first_line" in
+  Merge\ *|Revert\ *) exit 0 ;;
+esac
+
+if ! printf '%s' "$first_line" | grep -Eq '^CPA-[a-z0-9]+(-[a-z0-9]+)*$'; then
+  echo "Mesaj de commit invalid: '$first_line'" >&2
+  echo "Formatul cerut: CPA-<titlu-kebab>, de exemplu CPA-added-backend-service" >&2
+  exit 1
+fi
