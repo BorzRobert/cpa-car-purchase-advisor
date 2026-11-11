@@ -11,6 +11,7 @@
  */
 
 import { SidebarTrigger } from "@/components/ui/sidebar";
+import { PanelTrigger } from "@/components/panel/panel-trigger";
 import { useConversations } from "@/hooks/use-conversations";
 import { useAppStore } from "@/store/useAppStore";
 
@@ -23,8 +24,11 @@ export function AppHeader() {
   return (
     <header className="flex h-12 shrink-0 items-center gap-2 border-b px-2">
       <SidebarTrigger aria-label="Comută sidebar-ul" />
-      {/* `truncate` fiindcă titlul vine din primul mesaj al utilizatorului: poate fi oricât de lung. */}
-      <span className="truncate text-sm text-muted-foreground">{activeTitle ?? "Conversație nouă"}</span>
+      {/* Titlul conversației e și `h1`-ul paginii: ecranul de start și cel de conversație au astfel același antet principal. */}
+      <h1 className="truncate font-sans text-sm font-normal text-muted-foreground">
+        {activeTitle ?? "Conversație nouă"}
+      </h1>
+      <PanelTrigger />
     </header>
   );
 }

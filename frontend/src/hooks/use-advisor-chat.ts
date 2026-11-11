@@ -17,8 +17,9 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useQueryClient } from "@tanstack/react-query";
 import { parseAdvisorEvent } from "@/lib/advisor-events";
 import { ApiError, INCOMPLETE_STREAM, problemToError } from "@/lib/api/errors";
-import { api, openMessageStream } from "@/lib/api/endpoints";
+import { api, openMessageStream, type BuyerProfile } from "@/lib/api/endpoints";
 import { applyAdvisorEvent, newMessage, type ChatMessage } from "@/lib/message-utils";
+import { applyProfilePatch } from "@/lib/profile-patch";
 import { readSse } from "@/lib/sse";
 import { conversationKeys, useMessages } from "@/hooks/use-conversations";
 import { profileKey } from "@/hooks/use-profile";
@@ -110,6 +111,16 @@ export function useAdvisorChat(conversationId: string | null) {
           if (event.type === "error") {
             finished = true;
             setScopedError({ conversationId: id, error: problemToError(event.problem, 502) });
+          }
+          if (event.type === "profile") {
+            // Panoul „Nevoile tale” se actualizează din patch, fără o cerere în plus; după flux profilul se reia oricum din backend.
+            queryClient.setQueryData<BuyerProfile>(
+              profileKey,
+              current => current && applyProfilePatch(current, event.patch)
+            );
+          }
+          if (event.type === "tool" && event.status === "finished" && event.name === "addToShortlist") {
+            void queryClient.invalidateQueries({ queryKey: shortlistKey });
           }
           assistant = applyAdvisorEvent(assistant, event);
           const snapshot = assistant;

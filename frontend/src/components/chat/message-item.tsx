@@ -49,18 +49,23 @@ export function MessageItem({ message }: { message: ChatMessage }) {
         </AvatarFallback>
       </Avatar>
 
-      <div className={cn("flex max-w-[85%] min-w-0 flex-col gap-2", isUser ? "items-end" : "items-start")}>
+      <div
+        className={cn(
+          "flex min-w-0 flex-col gap-2",
+          isUser ? "max-w-[85%] items-end" : hasExtras ? "w-full items-start" : "max-w-[85%] items-start"
+        )}
+      >
         <span className="px-1 text-xs text-muted-foreground">{isUser ? "Tu" : "Consilier CPA"}</span>
 
         {!isUser && <ToolActivityChips tools={message.tools} />}
-        {!isUser && <VehicleCards cards={message.cards} />}
+        {!isUser && <VehicleCards cards={message.cards} report={message.comparison} />}
         {!isUser && message.comparison && <ComparisonSummary report={message.comparison} />}
 
         {message.content && (
           // `group` face butonul de copiere să apară la hover; stă în interiorul bulei ca poziția lui să fie stabilă.
           <div
             className={cn(
-              "group relative rounded-2xl px-4 py-3 text-sm leading-relaxed whitespace-pre-wrap",
+              "group relative rounded-lg px-4 py-3 text-sm leading-relaxed whitespace-pre-wrap",
               isUser ? "rounded-br-sm bg-primary text-primary-foreground" : "rounded-bl-sm bg-muted"
             )}
           >

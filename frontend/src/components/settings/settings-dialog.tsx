@@ -16,7 +16,7 @@ import { Button } from "@/components/ui/button";
 import { Separator } from "@/components/ui/separator";
 import { AppearanceForm } from "@/components/settings/appearance-form";
 import { ProfileForm } from "@/components/settings/profile-form";
-import { ShortlistPanel } from "@/components/settings/shortlist-panel";
+import { ShortlistView } from "@/components/panel/shortlist-view";
 import { useAppStore, type SettingsSection } from "@/store/useAppStore";
 import { cn } from "@/lib/utils";
 
@@ -50,7 +50,7 @@ const SECTIONS: {
     label: "Lista scurtă",
     icon: ListChecks,
     description: "Variantele pe care ți le-ai salvat pentru comparație.",
-    Content: ShortlistPanel
+    Content: ShortlistView
   }
 ];
 
