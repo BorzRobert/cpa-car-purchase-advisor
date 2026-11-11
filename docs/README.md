@@ -8,7 +8,7 @@
 
 [`architecture/backend.md`](architecture/backend.md) — cum este construit backend-ul: versiuni fixate, straturi, configurare (inclusiv profilul `prod`), baza de date și migrări, limite, securitate, teste, Docker și CI.
 
-[`architecture/communication.md`](architecture/communication.md) — contractul frontend ↔ backend: sesiune, endpoint-uri, erori, limite, SSE (specificat). [`architecture/openapi.json`](architecture/openapi.json) — instantaneul OpenAPI, verificat în CI.
+[`architecture/communication.md`](architecture/communication.md) — contractul frontend ↔ backend: sesiune, endpoint-uri, erori, limite, SSE (implementat, consumat de frontend din Faza 6). [`architecture/openapi.json`](architecture/openapi.json) — instantaneul OpenAPI, verificat în CI; din el se generează tipurile frontend-ului (`npm run api:types`).
 
 Când se schimbă ceva pe drum, se actualizează în `requirements.md`, nu doar în conversație.
 
@@ -16,16 +16,12 @@ Când se schimbă ceva pe drum, se actualizează în `requirements.md`, nu doar 
 
 Fiecare integrare externă are propriul folder, cu pașii manuali pe care trebuie să-i facă omul: cont, generare de chei, click-uri în dashboard-ul lor, costuri. Codul îl scrie agentul; pașii manuali se uită imediat dacă nu-i notează nimeni — la reinstalare, pe alt calculator sau la deploy îi cauți de la zero.
 
-Folderele `anthropic/` și `nextauth/` descriu încă vechea aplicație (SkillForge) și se șterg în Faza 6, odată cu codul server pe care îl documentează; `openai/`, `render/` și `neon/` descriu backend-ul.
-
 | Integrare | La ce pas a intrat                                                   | Link                                         |
 | --------- | -------------------------------------------------------------------- | -------------------------------------------- |
 | Vercel    | Faza 4.1 (veche) — publicare; Faza 3 — `NEXT_PUBLIC_API_BASE_URL`, CORS | [`vercel/README.md`](vercel/README.md)    |
 | Render    | Faza 3 — backend Docker (`render.yaml`)                              | [`render/README.md`](render/README.md)       |
 | Neon      | Faza 3 — PostgreSQL de producție, Flyway                             | [`neon/README.md`](neon/README.md)           |
-| Anthropic | veche — se șterge în Faza 6                                          | [`anthropic/README.md`](anthropic/README.md) |
 | OpenAI    | Faza 2 — dependență + configurație backend (apeluri din Faza 5)      | [`openai/README.md`](openai/README.md)       |
-| Auth.js   | veche — se șterge în Faza 6 (identitate anonimă, D3)                 | [`nextauth/README.md`](nextauth/README.md)   |
 
 Formatul obligatoriu al unui astfel de fișier: [`_template/README.md`](_template/README.md).
 

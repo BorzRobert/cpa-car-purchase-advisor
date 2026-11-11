@@ -6,7 +6,7 @@ OpenAI este singurul furnizor de model al consilierului CPA. Backend-ul Java (Sp
 
 A intrat în **Faza 2** (dependența și configurația); primul apel real către model este în **Faza 5a** (`POST /api/v1/conversations/{id}/messages`, în streaming). CI nu are cheie: testele folosesc un model înregistrat (`RecordedChatModel`), deci verificarea cu modelul real este manuală (vezi „Verificare”).
 
-> Vechea integrare din frontend (`OPENAI_API_KEY` în `frontend/.env.example`, `src/lib/providers.server.ts`) aparține aplicației SkillForge și se șterge în Faza 6. Cheia nu are ce căuta în frontend.
+> Cheia nu are ce căuta în frontend: Next.js nu apelează niciun model (vechea integrare din frontend a fost ștearsă în Faza 6). Pentru o rulare locală cu modelul real, cheia se exportă în shell înainte de `docker compose up` (vezi comentariile din `docker-compose.yml`) sau stă în `backend/.env`.
 
 ## Cont & chei
 

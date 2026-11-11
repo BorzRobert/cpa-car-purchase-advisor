@@ -77,7 +77,7 @@ Every external integration (OpenAI, Render, Neon, Vercel, …) ships with `docs/
 
 ## 8. Definition of done for a step
 
-1. Frontend: `npm run build`, `npm run lint` and `npm run format:check` pass in `frontend/`; backend (from Phase 2): `./mvnw verify` passes.
+1. Frontend: `npm run build`, `npm run lint`, `npm test` and `npm run format:check` pass in `frontend/`; backend (from Phase 2): `./mvnw verify` passes.
 2. The new thing is visible/verifiable when running the service(s).
 3. `docs/requirements.md` reflects reality (phase, scope, non-functional requirements).
 4. Any new integration has its `docs/<integration>/README.md`, its index row, and `.env.example` placeholders.

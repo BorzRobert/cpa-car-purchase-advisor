@@ -10,10 +10,10 @@
  * DE CE se salvează doar tokenul: conversația activă ar putea indica, după un refresh, o conversație ștearsă între
  * timp; la repornire pornim de la ecranul de start, iar lista din sidebar o arată pe cele existente.
  *
- * DE CE `skipHydration` și rehidratare manuală (`useStoreHydration`): pagina e randată întâi pe server, unde
- * `localStorage` nu există; citirea lui în prima randare din browser ar produce o eroare de hidratare React.
+ * DE CE `skipHydration` și rehidratare manuală (în `ensureSessionToken`): pagina e randată întâi pe server, unde
+ * `localStorage` nu există; citirea lui în prima randare din browser ar produce o eroare de hidratare React. Rehidratarea
+ * se face înainte de prima cerere către backend, adică exact când tokenul devine necesar.
  */
-import { useEffect, useState } from "react";
 import { create } from "zustand";
 import { persist, createJSONStorage, type StateStorage } from "zustand/middleware";
 
@@ -74,19 +74,3 @@ export const useAppStore = create<AppState>()(
     }
   )
 );
-
-/**
- * Citește starea salvată din `localStorage` după montare și spune când e gata, ca UI-ul să afișeze scheleturi în loc
- * de date care s-ar schimba sub ochii utilizatorului.
- */
-export function useStoreHydration(): boolean {
-  const [hydrated, setHydrated] = useState(() => useAppStore.persist.hasHydrated());
-
-  useEffect(() => {
-    const unsubscribe = useAppStore.persist.onFinishHydration(() => setHydrated(true));
-    void useAppStore.persist.rehydrate();
-    return unsubscribe;
-  }, []);
-
-  return hydrated;
-}

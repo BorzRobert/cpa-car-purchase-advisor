@@ -1,7 +1,7 @@
 # <Nume integrare>
 
 > Șablon. Se copiază în `docs/<integrare>/README.md` la pasul în care integrarea intră efectiv în proiect
-> (ex. `docs/anthropic/README.md`), împreună cu rândul din tabelul din [`../README.md`](../README.md).
+> (ex. `docs/openai/README.md`), împreună cu rândul din tabelul din [`../README.md`](../README.md).
 >
 > Toate cele șase secțiuni de mai jos sunt **obligatorii**. Dacă una nu se aplică, se scrie explicit de ce.
 >

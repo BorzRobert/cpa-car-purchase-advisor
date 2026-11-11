@@ -2,7 +2,7 @@
 
 Consilier personal pentru cumpărarea unei mașini. Un **agent AI** află nevoile cumpărătorului, caută și compară mașini dintr-un catalog propriu, calculează costul total de deținere și explică de ce recomandă ce recomandă. Prețurile și cifrele vin din unelte deterministe din backend, nu din memoria modelului.
 
-**Stadiul actual:** Faza 3 — „walking skeleton": backend-ul Java (`backend/`) este publicat pe Render cu PostgreSQL pe Neon, iar frontend-ul de pe Vercel afișează starea lui (cu tratarea cold start-ului). Domeniul, persistența și consilierul vin în fazele următoare. Planul complet este în [docs/plan.md](docs/plan.md), iar cerințele în [docs/requirements.md](docs/requirements.md).
+**Stadiul actual:** Faza 6 — frontend-ul este conectat la backend: conversațiile, profilul („Nevoile tale”) și lista scurtă vin din backend, iar răspunsurile consilierului curg prin SSE; Next.js nu mai conține cod de server și nu apelează niciun model. Backend-ul Java (`backend/`) este publicat pe Render cu PostgreSQL pe Neon, iar frontend-ul pe Vercel. Redesign-ul, ghidul și întărirea pentru producție vin în fazele următoare. Planul complet este în [docs/plan.md](docs/plan.md), iar cerințele în [docs/requirements.md](docs/requirements.md).
 
 **Aplicația publicată:** URL-urile se completează după primul deploy (Faza 3); pașii sunt în [docs/render/README.md](docs/render/README.md), [docs/neon/README.md](docs/neon/README.md) și [docs/vercel/README.md](docs/vercel/README.md).
 
@@ -12,31 +12,36 @@ Consilier personal pentru cumpărarea unei mașini. Un **agent AI** află nevoil
 | ---------------------- | -------------------------------------------------------------------------------- |
 | `frontend/`            | aplicația Next.js (UI); rulează pe Vercel                                        |
 | `backend/`             | serviciul Java 25 / Spring Boot 4 (API, logică de produs, singurul apel către OpenAI) |
+| `docker-compose.yml`   | stiva locală: PostgreSQL + backend (`docker compose up --build`)                  |
 | `docs/`                | cerințe, plan, ADR-uri, documentația integrărilor                                |
 | `scripts/`             | sincronizarea instrucțiunilor pentru agenți și a skill-urilor, hook-ul de commit |
 | `.claude/`, `.github/` | skill-uri și instrucțiuni pentru agenți (generate din `AGENTS.md`)               |
 
 ## Cum se rulează
 
-Frontend (Node 20.9+):
+Stiva completă local (backend pe PostgreSQL + frontend). Cere Docker și Node 20.9+:
 
 ```bash
+docker compose up --build          # PostgreSQL + backend pe http://localhost:8080
 cd frontend
+cp .env.example .env.local         # NEXT_PUBLIC_API_BASE_URL=http://localhost:8080
 npm install
-npm run dev   # http://localhost:3000
+npm run dev                        # http://localhost:3000
 ```
+
+Fără `OPENAI_API_KEY` totul pornește, iar consilierul arată starea „neactivat” (`503 advisor-not-configured`); pentru răspunsuri reale exportă cheia în shell înainte de `docker compose up` (vezi [docs/openai/README.md](docs/openai/README.md)).
 
 | Comandă (în `frontend/`) | Ce face                                                   |
 | ------------------------ | --------------------------------------------------------- |
 | `npm run dev`            | server de dezvoltare (Turbopack)                          |
 | `npm run build`          | build de producție                                        |
 | `npm run lint`           | ESLint                                                    |
+| `npm test`               | teste Vitest (parserul SSE, transformările mesajelor)     |
+| `npm run api:types`      | regenerează `src/lib/api/schema.d.ts` din `docs/architecture/openapi.json` |
 | `npm run format`         | formatează tot proiectul cu Prettier                      |
 | `npm run format:check`   | verifică formatarea fără să modifice (varianta pentru CI) |
 
-Variabilele de mediu ale frontend-ului sunt în `frontend/.env.example`; valorile reale merg în `frontend/.env.local` (gitignorat). Pentru a vedea starea backend-ului în UI, pornește backend-ul (mai jos) și pune `NEXT_PUBLIC_API_BASE_URL="http://localhost:8080"` în `frontend/.env.local`.
-
-Backend (JDK 25 — Temurin — cu `JAVA_HOME` setat pe el; Maven Wrapper, fără Maven global):
+Variabilele de mediu ale frontend-ului sunt în `frontend/.env.example` (doar `NEXT_PUBLIC_API_BASE_URL`); valorile reale merg în `frontend/.env.local` (gitignorat).
 
 ```bash
 cd backend

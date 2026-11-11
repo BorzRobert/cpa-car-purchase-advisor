@@ -40,9 +40,9 @@ export type VehicleCard = {
   dataAsOf: string;
 };
 
-export type ComparisonCriterion = { id: string; label: string; weight: number };
+type ComparisonCriterion = { id: string; label: string; weight: number };
 
-export type ComparisonScore = {
+type ComparisonScore = {
   variantId: string;
   total: number;
   breakdown: { criterion: string; label: string; applicable: boolean; score: number; detail: string }[];

@@ -31,6 +31,9 @@ jobs:
 
       - run: npm run lint
 
+      # Parserul SSE și transformările mesajelor sunt logică pură: rulează fără browser și fără backend.
+      - run: npm test
+
       # Pe Linux fisierele au LF, deci verificarea Prettier (endOfLine: lf) trece fara `--end-of-line auto`.
       - run: npm run format:check
 
