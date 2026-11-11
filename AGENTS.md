@@ -1,142 +1,97 @@
-# Agent instructions — SkillForge
+# Agent instructions — CPA (Car Purchase Advisor)
 
-SkillForge is a personal skills & career copilot: a Next.js web app whose core is an **AI agent** that knows the user's real profile (stack, skills with levels, goal), answers in that context, and proposes concrete learning steps. Chat responses stream, the system prompt is generated from the profile, memory persists across sessions, and later the agent gets tools it uses on its own (search the user's notes, update the learning plan).
+CPA is a car purchase advisor made of two services: a **Next.js frontend** (`frontend/`, UI only) and a **Spring Boot backend** (`backend/`, Java 25, added in Phase 2) that owns all product logic, data, and the single OpenAI model call. The agent interviews the buyer, calls deterministic Java tools (search, rank, compare, TCO, financing), and explains the results.
 
-The LLM is always called **from the server**, through an LLM provider (Anthropic first, then OpenAI) — never from the browser, so the API key never reaches the client.
+The LLM is always called **from the backend** — never from the browser or from Next.js — so the API key never reaches the client.
 
-This project is built **step by step, as a course**. Read the rules below before proposing or writing anything.
+The transformation is executed phase by phase following `docs/plan.md`. Read the rules below before proposing or writing anything.
 
 ## 1. Requirements are the single source of truth
 
-- **`docs/requirements.md` is the single source of truth** for what we build. Read it before proposing or writing code — it defines the phases, what is in scope now, and what is explicitly deferred.
-- If the chat conversation conflicts with `docs/requirements.md`, **the file wins** until it is updated.
-- **When direction changes, update `docs/requirements.md` in the same step as the code.** Never leave a decision only in the conversation: update the affected phase, any non-functional requirement it touches, and the date/current phase in the header.
-- A deferred requirement is never silently dropped — move it to a later phase or to the "Non-scop" section so the decision leaves a trace.
-- Do not copy requirements into `README.md`. `README.md` stays short (what it is, how to run it, where the docs are) and links to `docs/requirements.md`.
+- **`docs/requirements.md` is the single source of truth** for what we build; `docs/plan.md` is the execution roadmap. If the chat conflicts with `docs/requirements.md`, **the file wins** until it is updated.
+- **When direction changes, update `docs/requirements.md` in the same step as the code** (phase, affected requirements, date/current phase in the header). A decision change to D1–D9 also needs a new ADR in `docs/adr/`.
+- A deferred requirement is never silently dropped — move it to a later phase or to the "Non-scop" section.
+- Do not copy requirements into `README.md`; it stays short and links to the docs.
 
 ## 2. External integrations must document the manual steps
 
-**Fixed rule: every new external integration ships with `docs/<integration>/README.md`** — one folder per integration (`docs/anthropic/`, `docs/openai/`, `docs/supabase/`, `docs/vercel/`, `docs/sentry/`, …). This applies to LLM providers, databases, authentication, deploy targets, and monitoring — anything that needs an account, a key, or a dashboard.
+Every external integration (OpenAI, Render, Neon, Vercel, …) ships with `docs/<integration>/README.md`, using the mandatory sections of `docs/_template/README.md` (Ce face, Cont & chei, Variabile de mediu, Pași manuali, Cost & limite, Verificare), plus a row in the index table of `docs/README.md` and placeholders in the matching `.env.example`, **in the same commit** that adds the integration.
 
-The agent writes the code; the manual steps are forgotten immediately if nobody writes them down — on reinstall, on another machine, or at deploy time they have to be rediscovered from scratch.
+**Never write real keys, tokens, connection strings, or account identifiers in `docs/`** — only variable names and where to obtain the values. Everything under `docs/` is written in Romanian, except `docs/plan.md` (English).
 
-**In the same commit** that adds the integration:
+## 2.1 Reusable skills
 
-1. `docs/<integration>/README.md`, using the mandatory sections of `docs/_template/README.md`:
-   - **Ce face** — what it is used for in SkillForge, and in which phase it was added.
-   - **Cont & chei** — where to create the account, the exact path in their UI to generate the key, which scopes/permissions it needs.
-   - **Variabile de mediu** — the EXACT variable name, the file it goes into, and the line added to `.env.example`.
-   - **Pași manuali** — what the agent cannot do: clicks in their dashboard, migrations to run, domains or webhooks to add.
-   - **Cost & limite** — free tier, rate limits, what is billed, what drives the bill in SkillForge.
-   - **Verificare** — the command or screen that proves it works, with the expected result.
-2. the row in the index table of `docs/README.md` (`integrare | la ce pas a intrat | link`);
-3. the new variables in `.env.example`, with placeholder values only.
+- Project skills live in `.claude/skills/<name>/SKILL.md` (canonical); `.github/skills/<name>/SKILL.md` is the Copilot mirror and must be identical.
+- After changing or adding a skill, run `sh scripts/sync-skills.sh`; `sh scripts/sync-skills.sh --check` verifies without modifying.
+- The `pre-deploy` skill runs before every publish.
 
-**Never write real keys, tokens, connection strings, or account identifiers in `docs/` — only variable names and where to obtain the values.** Real values live only in `.env.local`, which is gitignored.
+## 3. Secrets and responsibilities
 
-Everything under `docs/` is written in Romanian — it is for the user.
-
-## 2.1 Skill-uri reutilizabile
-
-- Skill-urile proiectului stau în `.claude/skills/<nume>/SKILL.md`; acesta este folderul sursă canonic.
-- `.github/skills/<nume>/SKILL.md` este oglinda pentru Copilot. Cele două fișiere trebuie să fie identice.
-- După ce modifici sau adaugi un skill, rulează `sh scripts/sync-skills.sh`; verificarea fără modificări este `sh scripts/sync-skills.sh --check`.
-- Skill-ul `pre-deploy` se rulează înainte de fiecare publicare și verifică build-ul fără `.env.local`, formatarea, cerințele și configurația Vercel.
-
-## 3. Secrets
-
-- API keys are used **only** in server-side code: Route Handlers (`src/app/api/*/route.ts`) and Server Components. Never in client components, never in a URL, never in logs or in error messages shown to the user, never committed.
-- `src/lib/providers.ts` ajunge în browser și nu are voie să atingă `process.env`; cheile și SDK-urile stau în `src/lib/providers.server.ts`, iar `getModel` este singurul loc care instanțiază un SDK de provider.
-- In Next.js a variable reaches the browser **only** if its name starts with `NEXT_PUBLIC_`. That prefix means public — never put a secret behind it. (Same trap as `VITE_*` in Vite projects, which are inlined into the bundle at build time.)
-- Never return a secret's value in an API response. Report at most whether it is configured (`Boolean(process.env.X)`).
-- Every new variable goes into `.env.example` with a placeholder and a one-line comment, and is documented in the relevant `docs/<integration>/README.md`.
-- If a key has ever been exposed, say so and have it revoked/regenerated — do not just delete the line.
-- System prompt-ul se construiește doar pe server și numai în `src/lib/system-prompt.ts`; un al doilea loc care compune persona este o eroare, nu o optimizare.
-- Formula de cost are un singur loc, `src/lib/cost.ts`; prețurile sunt în registry-ul de providere și au data verificării.
-- Cache-ul se accesează doar prin `src/lib/cache.ts`, iar cheia include tot ce influențează răspunsul, inclusiv system prompt-ul.
-- Datele venite din browser se normalizează pe server înainte să intre într-un prompt.
-- Autentificarea este opțională la pornire, dar orice rută care costă bani se închide în producție
-  când Auth.js nu este configurat; verificarea sesiunii stă în handler-ul serverului, înainte de
-  rate-limit, cache sau provider. Sesiunea se citește cu funcția server-side și se așteaptă, iar
-  hook-ul client-side se folosește numai sub `SessionProvider`, pe o ramură montată condiționat
-  prin context propriu.
-- Numele, emailul și poza venite de la furnizor nu sunt profil local: emailul este readonly,
-  nu intră în tipul profilului, în `localStorage` sau în system prompt. Jurnalul serverului scrie
-  doar identificatorul utilizatorului, niciodată date personale sau tokenuri.
+- `OPENAI_API_KEY` exists **only** in the backend environment (`backend/.env`, gitignored, or the host dashboard). Never in `frontend/`, in a URL, in logs, in error messages, or committed.
+- The frontend has **no Route Handlers** and no secrets; its only environment variable is `NEXT_PUBLIC_API_BASE_URL`. A `NEXT_PUBLIC_` prefix means public — never put a secret behind it.
+- Never return a secret's value in an API response; report at most whether it is configured.
+- Every new variable goes into the matching `.env.example` with a placeholder and a one-line comment, and into the relevant `docs/<integration>/README.md`.
+- If a key has ever been exposed, say so and have it revoked — do not just delete the line.
+- **Backend owns:** the system prompt (built in exactly one place, in the `ai` package), tools, scoring and TCO maths, memory, rate limiting and the daily budget, persistence. **Frontend owns:** rendering and input collection. A second place that composes the persona, or any LLM call from Next.js, is a bug.
+- The advisor must never answer prices, specs, or costs from model memory; they come from tool results with the "data as of" date.
+- Data coming from the browser is untrusted: validate and normalize it on the backend before it enters a prompt; profile, listing text, and user input are delimited data, never instructions.
+- Identity is an anonymous session token (stored hashed server-side). No personal data is collected; server logs never contain personal data or tokens.
 
 ## 4. Course working rhythm
 
-- **Small steps, one new concept per step.** Do not implement future phases in advance, and do not add libraries, abstractions, or configuration only a later phase needs.
-- Prefer the simplest thing that satisfies the current phase's "gata când" (done-when) criterion.
-- At the end of every step, explain in plain language: **what was added, why it was needed, and what the user should look at to see it working.** This is a learning project — an unexplained change is an incomplete change.
-- Delete generated boilerplate that serves no purpose (unused demo assets, placeholder pages).
-- When a step touches an integration, do the code and its `docs/<integration>/README.md` in the same step.
+- **Small steps, one new concept per step.** Do not implement future phases in advance.
+- Prefer the simplest thing that satisfies the current phase's "done when" criterion in `docs/plan.md`.
+- At the end of every step, explain in plain language what was added, why it was needed, and what to look at to see it working.
+- Delete generated boilerplate that serves no purpose.
+- Commit messages: first line `CPA-<short-kebab-title>` (enforced by `scripts/hooks/commit-msg`; activate with `git config core.hooksPath scripts/hooks`). Pure `git mv` moves go in their own commit with no content edits. Do not commit unless the user asks.
 
-## 5. Tech stack (fixed — see `docs/requirements.md` §4)
+## 5. Frontend stack (fixed)
 
-- **Everything is Tailwind + shadcn/ui. No hand-written CSS, no second component library.** Need a component? `npx shadcn@latest add <name>` — do not write primitives by hand.
+- **Everything is Tailwind + shadcn/ui. No hand-written CSS, no second component library.** Need a component? `npx shadcn@latest add <name>` — do not write primitives by hand. `src/components/ui/` is generated; do not edit it by hand (documented exception: `sonner.tsx` uses the app's own `useTheme()`).
 - **One component per file**; file names in `kebab-case`, components in `PascalCase`.
-- **Registry, not `if` chains.** Lists that grow (providers, settings sections, suggestions, theme options) are declared as data and iterated over. Adding an entry must never require editing JSX.
-- **Mock data lives only in `src/lib/mock/`** — never inline in components, so it can be replaced in one move when real data arrives.
-- **The center of the app stays minimal:** no action bar, and no theme toggle in the header. The theme is changed only in Settings → General → Appearance.
-- **Tema nu stă în store-ul Zustand și nu apare în `partialize`:** este gestionată de `ThemeProvider` cu `createContext` + `useContext`, iar preferința se persistă separat în `localStorage` sub cheia `skillforge-theme`; `skillforge-app` rămâne pentru restul stării aplicației.
-- **Transformările peste mesaje** stau în `src/lib/message-utils.ts` ca funcții pure; extragerea textului din părțile unui mesaj are un singur loc în tot proiectul. Nu adăugăm bară de acțiuni deasupra conversației: acțiunile apar în sidebar, în meniul header-ului sau pe mesaj.
-- **Conținutul venit de la model** se randează printr-un singur component Markdown, refolosit pentru toate mesajele, fără HTML brut: nu activăm pluginuri HTML și nu folosim `dangerouslySetInnerHTML` pe textul modelului.
-- Tailwind v4 needs the shadcn tokens (`--background`, `--foreground`, `--card`, `--primary`, `--muted`, `--border`, `--ring`, `--destructive`, `--sidebar*`) defined on `:root` **and** `.dark`, plus `@custom-variant dark (&:is(.dark *));` and the `@theme inline` block in `src/app/globals.css`. Without them `bg-primary` / `bg-muted` generate nothing and the theme cannot switch — the classic `create-next-app` + shadcn mistake.
+- **Registry, not `if` chains.** Lists that grow are declared as data and iterated over.
+- **Mock data lives only in `src/lib/mock/`** until it is replaced by backend data.
+- **The center of the app stays minimal:** no action bar and no theme toggle in the header; the theme is changed only in Settings → General → Appearance.
+- **Theme is not in the Zustand store:** it is managed by `ThemeProvider` (`createContext` + `useContext`) and persisted in `localStorage["cpa-theme"]`; `cpa-app` holds the rest of the app state.
+- **Message transforms** live in `src/lib/message-utils.ts` as pure functions; text extraction from message parts has a single place.
+- **Model-generated content** is rendered through the single Markdown component, with no raw HTML: no HTML plugins and no `dangerouslySetInnerHTML` on model text.
+- Tailwind v4 needs the shadcn tokens defined on `:root` **and** `.dark`, plus `@custom-variant dark (&:is(.dark *));` and the `@theme inline` block in `src/app/globals.css`.
 
 ## 6. Code conventions
 
-- **Code, identifiers, commit messages and these agent instructions are in English.** Everything under `docs/`, `README.md`, and all UI copy is in **Romanian** — that is what the user reads.
-- **Comments are in Romanian and explain WHY, not what.** A comment that restates the code (`// incrementează contorul`) is noise; a comment that explains the reason (`// fără "use client" hook-ul ar rula pe server și build-ul cade`) is the point. Every non-trivial file carries at least a short header comment saying why it exists and what it prepares for.
-- Structure: `src/app/` (routes, one folder per route), `src/app/api/` (Route Handlers), `src/components/` (own components), `src/components/ui/` (shadcn — do not edit by hand), `src/lib/` (helpers, `cn()`, later the agent/persona/providers), `docs/`, `scripts/`. Excepție documentată: `src/components/ui/sonner.tsx` poate fi editat pentru a înlocui importul generat `next-themes` cu `useTheme()` din providerul propriu, altfel notificările ar rămâne pe `system`.
-- Internal navigation uses `next/link`. Plain `<a>` only for things that are not React routes (API endpoints, external links) — and say why in a comment.
-- Server Components are the default; add `"use client"` only where browser state or event handlers are actually needed, and keep those components as small as possible.
-- TypeScript: no `any` in application code. Data crossing the client/server boundary (profile, messages) is validated on the server — it is untrusted input.
-- **Sursa de adevăr pe faze:** în timpul streamingului, hook-ul de chat deține mesajele și le construiește token cu token; după terminarea fluxului, store-ul devine arhiva persistentă a conversației. Citirile din store se fac prin selectors (`useAppStore(state => state.providerId)`), nu prin store-ul întreg.
-- Un selector nu construiește obiecte noi la fiecare apel (`state => ({ ... })`), fiindcă referința nouă provoacă rerandări inutile; se folosesc selectori separați sau comparația superficială a librăriei.
-- Orice schimbare a formei stării persistate cere incrementarea `version` și o funcție `migrate` care aduce datele vechi în forma curentă.
-- Do not commit unless the user asks.
+- **Code, identifiers, commit messages and these agent instructions are in English.** Everything under `docs/` (except `plan.md`), `README.md`, and all UI copy is in **Romanian**.
+- **Comments are in Romanian and explain WHY, not what.** Every non-trivial file carries a short header comment saying why it exists.
+- Frontend structure: `frontend/src/app/` (pages only), `src/components/`, `src/components/ui/`, `src/lib/`, `src/store/`.
+- Backend structure (Phase 2+): base package `ro.cpa.advisor` with `api`, `service`, `domain`, `repository`, `ai`, `config`. Layering is `api → service → repository`, `service → domain`, `ai` used by `service` only, `domain` depends on nothing; an ArchUnit test enforces it.
+- Internal navigation uses `next/link`; plain `<a>` only for non-React routes and external links, with a comment saying why.
+- Server Components are the default; add `"use client"` only where browser state or handlers are needed, and keep those components small.
+- TypeScript: no `any` in application code. API types are generated from the backend OpenAPI document (Phase 6) — never hand-written copies.
+- **Source of truth by phase:** while streaming, the chat hook owns the messages; after the stream ends, the backend is the persistent archive. Read from the store through selectors, never the whole store, and a selector must not build new objects on every call.
+- Any change to the persisted store shape requires bumping `version` and a `migrate` function.
 
 ## 7. Formatting is not up for discussion
 
-Prettier is configured from the start so that later steps never argue about spaces and quotes:
-
-- `.prettierrc` holds the fixed config (`printWidth: 120`, `semi: true`, double quotes, `trailingComma: "none"`, `arrowParens: "avoid"`, `endOfLine: "lf"`).
-- `prettier-plugin-tailwindcss` reorders Tailwind classes into a canonical order. This is not cosmetics: it makes diffs readable and exposes duplicate classes. Because Tailwind v4 has no config file, the plugin is pointed at the stylesheet via `"tailwindStylesheet": "./src/app/globals.css"` — do not remove that line.
-- `.prettierignore` stays **in the project root**, and must be complete: Prettier does not merge ignore files, it uses only the nearest one. Never pass `--ignore-path ../..` in a script.
-- **Run `npm run format` at the end of every step that writes code.** `npm run format:check` is the read-only variant (for CI).
-- `.vscode/settings.json` is committed on purpose (format on save, Prettier as default formatter) so the whole group has the same setup.
+- Frontend: `frontend/.prettierrc` holds the fixed config (`printWidth: 120`, `semi: true`, double quotes, `trailingComma: "none"`, `arrowParens: "avoid"`, `endOfLine: "lf"`), with `prettier-plugin-tailwindcss` pointed at `./src/app/globals.css` — do not remove that line. `frontend/.prettierignore` stays inside `frontend/` and must be complete.
+- **Run `npm run format` (in `frontend/`) at the end of every step that writes frontend code.** `npm run format:check` is the read-only variant. On Windows with `core.autocrlf=true`, the working tree has CRLF, so check with `npx prettier --end-of-line auto --check .`.
+- `.vscode/settings.json` is committed on purpose (format on save, Prettier as default formatter).
 
 ## 8. Definition of done for a step
 
-Before reporting a step as finished:
-
-1. `npm run build` passes;
-2. `npm run dev` serves the app and the new thing is visible/verifiable;
-3. `npm run format` has been run;
-4. `docs/requirements.md` reflects reality (phase, scope, non-functional requirements);
-5. any new integration has its `docs/<integration>/README.md` and its index row;
-6. the step is explained to the user: what was added and why it was needed.
-7. before publishing, run the `pre-deploy` skill and confirm the Preview and Production checks.
+1. Frontend: `npm run build`, `npm run lint` and `npm run format:check` pass in `frontend/`; backend (from Phase 2): `./mvnw verify` passes.
+2. The new thing is visible/verifiable when running the service(s).
+3. `docs/requirements.md` reflects reality (phase, scope, non-functional requirements).
+4. Any new integration has its `docs/<integration>/README.md`, its index row, and `.env.example` placeholders.
+5. The step is explained to the user: what was added and why.
+6. Before publishing, run the `pre-deploy` skill.
 
 ## 9. These instruction files are generated
 
-`AGENTS.md` is the canonical file. `CLAUDE.md` and `.github/copilot-instructions.md` are **generated copies** — do not edit them.
-
-To change conventions: edit `AGENTS.md`, then run
-
-```sh
-sh scripts/sync-agent-instructions.sh
-```
-
-`sh scripts/sync-agent-instructions.sh --check` verifies the copies are in sync and exits non-zero if they are not.
+`AGENTS.md` is the canonical file. `CLAUDE.md` and `.github/copilot-instructions.md` are **generated copies** — do not edit them. To change conventions, edit `AGENTS.md`, then run `sh scripts/sync-agent-instructions.sh`; `sh scripts/sync-agent-instructions.sh --check` verifies the copies are in sync.
 
 <!-- BEGIN:nextjs-agent-rules -->
 
 # This is NOT the Next.js you know
 
-This version has breaking changes — APIs, conventions, and file structure may all differ from your training data. Read the relevant guide in `node_modules/next/dist/docs/` (resolved from this file's directory; in monorepos the `next` package may not be visible from the repo root) before writing any code. Heed deprecation notices.
-
-This block is written and re-added by `next dev` — verify at `node_modules/next/dist/server/lib/generate-agent-files.js`. Removing it from a diff only re-creates the uncommitted change; committing it with your work keeps the tree clean.
+This version has breaking changes — APIs, conventions, and file structure may all differ from your training data. Read the relevant guide in `frontend/node_modules/next/dist/docs/` before writing any frontend code. Heed deprecation notices.
 
 <!-- END:nextjs-agent-rules -->

@@ -1,21 +1,25 @@
-# Documentația SkillForge
+# Documentația CPA
 
 ## Ce construim
 
-[`requirements.md`](requirements.md) — **sursa de adevăr**: ce este aplicația și pentru cine, cerințele pe faze (ce intră acum, ce lăsăm pentru mai târziu), cerințele non-funcționale (chei de API, date personale, cost) și glosarul.
+[`requirements.md`](requirements.md) — **sursa de adevăr**: ce este aplicația și pentru cine, arhitectura pe scurt, fazele, cerințele non-funcționale și non-scopul.
 
-Când se schimbă ceva pe drum, se actualizează acolo, nu doar în conversație.
+[`plan.md`](plan.md) — planul de transformare și de execuție, pe faze (în engleză). [`adr/`](adr/) — câte o notă scurtă pentru fiecare decizie D1–D9.
+
+Când se schimbă ceva pe drum, se actualizează în `requirements.md`, nu doar în conversație.
 
 ## Integrări externe
 
 Fiecare integrare externă are propriul folder, cu pașii manuali pe care trebuie să-i facă omul: cont, generare de chei, click-uri în dashboard-ul lor, costuri. Codul îl scrie agentul; pașii manuali se uită imediat dacă nu-i notează nimeni — la reinstalare, pe alt calculator sau la deploy îi cauți de la zero.
 
-| Integrare | La ce pas a intrat                         | Link                                         |
-| --------- | ------------------------------------------ | -------------------------------------------- |
-| Vercel    | Faza 4.1 — publicare și Preview/Production | [`vercel/README.md`](vercel/README.md)       |
-| Anthropic | Faza 3 — răspuns LLM în streaming          | [`anthropic/README.md`](anthropic/README.md) |
-| OpenAI    | Faza 5 — al doilea provider și comutator   | [`openai/README.md`](openai/README.md)       |
-| Auth.js   | Pasul de autentificare fără bază de date   | [`nextauth/README.md`](nextauth/README.md)   |
+Folderele `anthropic/`, `nextauth/` și `openai/` descriu încă vechea aplicație (SkillForge). Ele se rescriu sau se șterg în Faza 6 și Faza 9, odată cu codul server pe care îl documentează; `render/` și `neon/` apar în Faza 3.
+
+| Integrare | La ce pas a intrat                                      | Link                                         |
+| --------- | ------------------------------------------------------- | -------------------------------------------- |
+| Vercel    | Faza 4.1 (veche) — publicare și Preview/Production      | [`vercel/README.md`](vercel/README.md)       |
+| Anthropic | veche — se șterge în Faza 6                             | [`anthropic/README.md`](anthropic/README.md) |
+| OpenAI    | veche — se rescrie în Faza 5 (un singur model, backend) | [`openai/README.md`](openai/README.md)       |
+| Auth.js   | veche — se șterge în Faza 6 (identitate anonimă, D3)    | [`nextauth/README.md`](nextauth/README.md)   |
 
 Formatul obligatoriu al unui astfel de fișier: [`_template/README.md`](_template/README.md).
 
