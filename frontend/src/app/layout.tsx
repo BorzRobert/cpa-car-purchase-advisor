@@ -13,7 +13,7 @@
  * structura.
  */
 import type { Metadata } from "next";
-import { Geist, Geist_Mono } from "next/font/google";
+import { Geist, Geist_Mono, Space_Grotesk } from "next/font/google";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { Toaster } from "@/components/ui/sonner";
 import { ThemeProvider } from "@/components/theme/theme-provider";
@@ -28,6 +28,12 @@ const geistSans = Geist({
 const geistMono = Geist_Mono({
   variable: "--font-geist-mono",
   subsets: ["latin"]
+});
+
+// Fontul de afișare pentru titluri; „latin-ext” aduce diacriticele românești (ă, â, î, ș, ț).
+const displayFont = Space_Grotesk({
+  variable: "--font-display",
+  subsets: ["latin", "latin-ext"]
 });
 
 export const metadata: Metadata = {
@@ -68,7 +74,7 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
     <html
       lang="ro"
       suppressHydrationWarning
-      className={`${geistSans.variable} ${geistMono.variable} h-full antialiased`}
+      className={`${geistSans.variable} ${geistMono.variable} ${displayFont.variable} h-full antialiased`}
     >
       <head>
         <script dangerouslySetInnerHTML={{ __html: themeScript }} />

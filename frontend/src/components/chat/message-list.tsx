@@ -30,15 +30,26 @@ export function MessageList({ messages, streaming, isLoading }: MessageListProps
 
   /**
    * Derularea automată la ultimul mesaj. `block: "end"` derulează doar containerul, nu toată pagina; depinde și de
-   * `streaming` ca indicatorul să nu rămână sub marginea vizibilă.
+   * `streaming` ca indicatorul să nu rămână sub marginea vizibilă. Cine a cerut mișcare redusă primește salt direct.
    */
   useEffect(() => {
-    bottomRef.current?.scrollIntoView({ behavior: "smooth", block: "end" });
+    const reduceMotion = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+    bottomRef.current?.scrollIntoView({ behavior: reduceMotion ? "auto" : "smooth", block: "end" });
   }, [messages, streaming]);
 
   return (
     <ScrollArea className="min-h-0 flex-1 bg-background/40">
-      <div className="mx-auto flex w-full max-w-3xl flex-col gap-6 px-4 py-6">
+      {/*
+        `role="log"` + `aria-live="polite"`: cititorul de ecran anunță mesajele noi; `aria-busy` cât curge răspunsul
+        amână anunțul până la final, ca textul să nu fie citit bucată cu bucată, la fiecare token.
+      */}
+      <div
+        role="log"
+        aria-live="polite"
+        aria-busy={streaming}
+        aria-label="Conversația"
+        className="mx-auto flex w-full max-w-3xl flex-col gap-6 px-4 py-6"
+      >
         {isLoading ? <MessagesSkeleton /> : messages.map(message => <MessageItem key={message.id} message={message} />)}
 
         {waiting && <TypingIndicator />}
@@ -74,19 +85,19 @@ function MessagesSkeleton() {
   );
 }
 
-/** `aria-live="polite"`: cititorul de ecran află că a început răspunsul, fără să fie întrerupt în mijlocul altei citiri. */
+/** Indicatorul stă în `role="log"`, deci cititorul de ecran află de el fără un `aria-live` separat. */
 function TypingIndicator() {
   return (
-    <div className="flex gap-3" aria-live="polite">
+    <div className="flex gap-3">
       <Avatar className="mt-0.5 size-7 shrink-0">
         <AvatarFallback className="bg-muted text-xs">CPA</AvatarFallback>
       </Avatar>
-      <div className="flex items-center gap-1.5 rounded-2xl rounded-bl-sm bg-muted px-4 py-4">
+      <div className="flex items-center gap-1.5 rounded-lg rounded-bl-sm bg-muted px-4 py-4">
         <span className="sr-only">Consilierul scrie…</span>
         {[0, 150, 300].map(delay => (
           <span
             key={delay}
-            className="size-1.5 animate-bounce rounded-full bg-muted-foreground/60"
+            className="size-1.5 animate-bounce rounded-full bg-muted-foreground/60 motion-reduce:animate-none"
             style={{ animationDelay: `${delay}ms` }}
           />
         ))}

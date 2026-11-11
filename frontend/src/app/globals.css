@@ -26,7 +26,9 @@
   --color-foreground: var(--foreground);
   --font-sans: var(--font-sans);
   --font-mono: var(--font-geist-mono);
-  --font-heading: var(--font-sans);
+  --font-heading: var(--font-display);
+  --color-signal: var(--signal);
+  --color-signal-foreground: var(--signal-foreground);
   --color-sidebar-ring: var(--sidebar-ring);
   --color-sidebar-border: var(--sidebar-border);
   --color-sidebar-accent-foreground: var(--sidebar-accent-foreground);
@@ -65,73 +67,83 @@
   --radius-4xl: calc(var(--radius) * 2.6);
 }
 
+/*
+ * Identitatea vizuală „tabloul de bord / showroom noaptea”: grafit cald + chihlimbar (acțiuni) + turcoaz (semnal:
+ * scoruri, bare, stări reușite). Tema deschisă e varianta caldă a aceleiași palete, nu o paletă separată.
+ * `--signal` e singurul token nou față de setul shadcn; barele și inelele de scor îl folosesc ca să nu depindă de
+ * `--primary` (chihlimbarul deschis nu are contrast suficient ca linie pe fundal alb).
+ */
 :root {
-  --background: oklch(1 0 0);
-  --foreground: oklch(0.145 0 0);
-  --card: oklch(1 0 0);
-  --card-foreground: oklch(0.145 0 0);
-  --popover: oklch(1 0 0);
-  --popover-foreground: oklch(0.145 0 0);
-  --primary: oklch(0.205 0 0);
-  --primary-foreground: oklch(0.985 0 0);
-  --secondary: oklch(0.97 0 0);
-  --secondary-foreground: oklch(0.205 0 0);
-  --muted: oklch(0.97 0 0);
-  --muted-foreground: oklch(0.556 0 0);
-  --accent: oklch(0.97 0 0);
-  --accent-foreground: oklch(0.205 0 0);
-  --destructive: oklch(0.577 0.245 27.325);
-  --border: oklch(0.922 0 0);
-  --input: oklch(0.922 0 0);
-  --ring: oklch(0.708 0 0);
-  --chart-1: oklch(0.87 0 0);
-  --chart-2: oklch(0.556 0 0);
-  --chart-3: oklch(0.439 0 0);
-  --chart-4: oklch(0.371 0 0);
-  --chart-5: oklch(0.269 0 0);
-  --radius: 0.625rem;
-  --sidebar: oklch(0.985 0 0);
-  --sidebar-foreground: oklch(0.145 0 0);
-  --sidebar-primary: oklch(0.205 0 0);
-  --sidebar-primary-foreground: oklch(0.985 0 0);
-  --sidebar-accent: oklch(0.97 0 0);
-  --sidebar-accent-foreground: oklch(0.205 0 0);
-  --sidebar-border: oklch(0.922 0 0);
-  --sidebar-ring: oklch(0.708 0 0);
+  --background: oklch(0.985 0.004 85);
+  --foreground: oklch(0.2 0.012 260);
+  --card: oklch(1 0.002 85);
+  --card-foreground: oklch(0.2 0.012 260);
+  --popover: oklch(1 0.002 85);
+  --popover-foreground: oklch(0.2 0.012 260);
+  --primary: oklch(0.79 0.16 75);
+  --primary-foreground: oklch(0.2 0.012 260);
+  --secondary: oklch(0.953 0.007 85);
+  --secondary-foreground: oklch(0.25 0.012 260);
+  --muted: oklch(0.953 0.007 85);
+  --muted-foreground: oklch(0.45 0.014 260);
+  --accent: oklch(0.935 0.02 190);
+  --accent-foreground: oklch(0.25 0.03 200);
+  --signal: oklch(0.5 0.09 195);
+  --signal-foreground: oklch(0.99 0 0);
+  --destructive: oklch(0.55 0.22 27);
+  --border: oklch(0.89 0.007 85);
+  --input: oklch(0.89 0.007 85);
+  --ring: oklch(0.62 0.13 75);
+  --chart-1: oklch(0.72 0.15 70);
+  --chart-2: oklch(0.5 0.09 195);
+  --chart-3: oklch(0.55 0.02 260);
+  --chart-4: oklch(0.65 0.12 30);
+  --chart-5: oklch(0.4 0.02 260);
+  --radius: 0.375rem;
+  --sidebar: oklch(0.965 0.007 85);
+  --sidebar-foreground: oklch(0.2 0.012 260);
+  --sidebar-primary: oklch(0.79 0.16 75);
+  --sidebar-primary-foreground: oklch(0.2 0.012 260);
+  --sidebar-accent: oklch(0.925 0.012 85);
+  --sidebar-accent-foreground: oklch(0.2 0.012 260);
+  --sidebar-border: oklch(0.89 0.007 85);
+  --sidebar-ring: oklch(0.62 0.13 75);
 }
 
 .dark {
-  --background: oklch(0.145 0 0);
-  --foreground: oklch(0.985 0 0);
-  --card: oklch(0.205 0 0);
-  --card-foreground: oklch(0.985 0 0);
-  --popover: oklch(0.205 0 0);
-  --popover-foreground: oklch(0.985 0 0);
-  --primary: oklch(0.922 0 0);
-  --primary-foreground: oklch(0.205 0 0);
-  --secondary: oklch(0.269 0 0);
-  --secondary-foreground: oklch(0.985 0 0);
-  --muted: oklch(0.269 0 0);
-  --muted-foreground: oklch(0.708 0 0);
-  --accent: oklch(0.269 0 0);
-  --accent-foreground: oklch(0.985 0 0);
-  --destructive: oklch(0.704 0.191 22.216);
+  --background: oklch(0.17 0.008 260);
+  --foreground: oklch(0.96 0.005 85);
+  --card: oklch(0.21 0.01 260);
+  --card-foreground: oklch(0.96 0.005 85);
+  --popover: oklch(0.23 0.01 260);
+  --popover-foreground: oklch(0.96 0.005 85);
+  --primary: oklch(0.8 0.16 78);
+  --primary-foreground: oklch(0.18 0.01 260);
+  --secondary: oklch(0.26 0.012 260);
+  --secondary-foreground: oklch(0.96 0.005 85);
+  --muted: oklch(0.26 0.012 260);
+  --muted-foreground: oklch(0.74 0.012 260);
+  --accent: oklch(0.3 0.04 195);
+  --accent-foreground: oklch(0.96 0.005 85);
+  --signal: oklch(0.78 0.11 190);
+  --signal-foreground: oklch(0.18 0.01 260);
+  --destructive: oklch(0.7 0.19 22);
   --border: oklch(1 0 0 / 10%);
-  --input: oklch(1 0 0 / 15%);
-  --ring: oklch(0.556 0 0);
-  --chart-1: oklch(0.87 0 0);
-  --chart-2: oklch(0.556 0 0);
-  --chart-3: oklch(0.439 0 0);
-  --chart-4: oklch(0.371 0 0);
-  --chart-5: oklch(0.269 0 0);
-  --sidebar: oklch(0.205 0 0);
-  --sidebar-foreground: oklch(0.985 0 0);
-  --sidebar-primary: oklch(0.488 0.243 264.376);
-  --sidebar-primary-foreground: oklch(0.985 0 0);
-  --sidebar-accent: oklch(0.269 0 0);
-  --sidebar-accent-foreground: oklch(0.985 0 0);
+  --input: oklch(1 0 0 / 14%);
+  --ring: oklch(0.8 0.16 78 / 70%);
+  --chart-1: oklch(0.8 0.16 78);
+  --chart-2: oklch(0.78 0.11 190);
+  --chart-3: oklch(0.65 0.02 260);
+  --chart-4: oklch(0.7 0.14 30);
+  --chart-5: oklch(0.55 0.02 260);
+  --sidebar: oklch(0.145 0.008 260);
+  --sidebar-foreground: oklch(0.96 0.005 85);
+  --sidebar-primary: oklch(0.8 0.16 78);
+  --sidebar-primary-foreground: oklch(0.18 0.01 260);
+  --sidebar-accent: oklch(0.26 0.012 260);
+  --sidebar-accent-foreground: oklch(0.96 0.005 85);
   --sidebar-border: oklch(1 0 0 / 10%);
-  --sidebar-ring: oklch(0.556 0 0);
+  --sidebar-ring: oklch(0.8 0.16 78 / 70%);
 }
 
 @layer base {
@@ -143,5 +155,11 @@
   }
   html {
     @apply font-sans;
+  }
+  /* Titlurile folosesc fontul de afișare; textul curent rămâne în fontul de bază. */
+  h1,
+  h2,
+  h3 {
+    @apply font-heading;
   }
 }

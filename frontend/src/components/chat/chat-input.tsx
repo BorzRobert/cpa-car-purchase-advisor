@@ -54,7 +54,7 @@ export function ChatInput({ value, onValueChange, onSubmit, streaming, onStop }:
   }
 
   return (
-    <div className="rounded-2xl border bg-card shadow-sm transition-colors focus-within:border-ring/60">
+    <div className="rounded-lg border bg-card shadow-sm transition-colors focus-within:border-ring/60">
       <Textarea
         ref={textareaRef}
         value={value}
