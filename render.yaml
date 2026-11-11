@@ -9,10 +9,14 @@ services:
     plan: free
     # Frankfurt: aproape de utilizatorii din Romania/UE; regiunea Neon trebuie sa fie tot in Europa (latenta JDBC).
     region: frankfurt
-    # Doar modificarile din backend/ declanseaza un deploy; calea Dockerfile-ului si contextul sunt relative la rootDir.
-    rootDir: backend
-    dockerfilePath: ./Dockerfile
-    dockerContext: .
+    # Fara `rootDir`, intentionat: documentatia Render e contradictorie despre cum se rezolva dockerfilePath cand rootDir
+    # e setat. Caile de mai jos sunt relative la radacina repo-ului (asa le descrie schema Blueprint si formularul din
+    # dashboard), deci nu depind de aceasta ambiguitate. `buildFilter` pastreaza efectul lui rootDir: doar backend/ redeployeaza.
+    dockerfilePath: ./backend/Dockerfile
+    dockerContext: ./backend
+    buildFilter:
+      paths:
+        - backend/**
     # Fara interogare de baza de date, ca health check-ul sa nu tina Neon treaz (vezi application-prod.yml).
     healthCheckPath: /actuator/health
     autoDeployTrigger: commit

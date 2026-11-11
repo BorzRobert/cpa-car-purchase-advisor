@@ -66,7 +66,7 @@ Ce contează pentru CPA:
 
 - **Imaginea de bază:** `eclipse-temurin:25-jre` (și `25-jdk` pentru build) există pe Docker Hub (verificat 2026-11-11). Render acceptă Dockerfile multi-stage cu imagini publice (documentația Docker Render, 2026-11-11), deci `backend/Dockerfile` se construiește neschimbat. Confirmarea definitivă este primul build — vezi „Observat pe Render”.
 - **Memorie:** `-XX:MaxRAMPercentage=60` (heap ≈ 300 MB din 512 MB) lasă loc pentru metaspace și memoria nativă. Un container Docker cu limita de 512 MB a folosit ~270 MiB după pornire (verificat local). Dacă Render raportează „out of memory”, coboară procentul sau treci la un plan plătit.
-- **Calea Dockerfile și contextul** din `render.yaml` sunt relative la `rootDir: backend` (conform [Monorepo Support](https://render.com/docs/monorepo-support)); dacă primul build nu găsește Dockerfile-ul, verifică exact acest punct.
+- **Calea Dockerfile și contextul:** `render.yaml` nu folosește `rootDir`; setează `dockerfilePath: ./backend/Dockerfile` și `dockerContext: ./backend` (relative la rădăcina repo-ului), iar `buildFilter` limitează deploy-urile la `backend/**`. Motiv: documentația Render e contradictorie despre cum se rezolvă calea Dockerfile-ului când `rootDir` e setat. Același lucru la crearea manuală a serviciului: **Root Directory** gol, **Dockerfile Path** `./backend/Dockerfile`, **Docker Build Context Directory** `./backend`.
 - **Health check:** `/actuator/health` (2xx în 5 secunde). Nu interoghează baza, ca să nu țină Neon treaz (vezi [`../neon/README.md`](../neon/README.md)). Un deploy nou este considerat reușit abia când health check-ul trece; dacă nu trece în 15 minute, deploy-ul se anulează.
 - **Pornire lentă:** cu 0,1 CPU, Spring Boot pornește greu. Pe un container Docker local limitat la 0,25 CPU / 512 MB, aplicația a pornit în ~59 s; pe Render (0,1 CPU) e de așteptat mai mult. Cold start total la prima cerere după adormire = trezirea serviciului (~1 minut) + pornirea JVM. De aceea frontend-ul arată „Se trezește consilierul…" și reîncearcă ping-ul în loc să afișeze o eroare.
 - **Cost:** 0 USD pe Free. Depășirea orelor sau a lățimii de bandă suspendă serviciile Free până în luna următoare dacă nu ai card atașat; nu există cheltuială surpriză fără card. Un plan plătit elimină adormirea (se discută în Faza 9 dacă demo-ul o cere).
@@ -102,7 +102,7 @@ Erori tipice:
 
 | Simptom                                                         | Cauză probabilă                                                                              |
 | --------------------------------------------------------------- | -------------------------------------------------------------------------------------------- |
-| Build: `Dockerfile` negăsit                                     | `rootDir` / `dockerfilePath` / `dockerContext` din `render.yaml` — vezi nota de mai sus      |
+| Build: `Dockerfile` negăsit                                     | `dockerfilePath` / `dockerContext` din `render.yaml` (sau din formular) — vezi nota de mai sus |
 | Deploy anulat după 15 minute, „health check failed”             | Aplicația nu a pornit: citește logurile (variabilă lipsă, baza de date greșită)              |
 | `Could not resolve placeholder 'SPRING_DATASOURCE_URL'` / `CORS_ALLOWED_ORIGINS` | Variabila `sync: false` nu a fost completată în dashboard                       |
 | Procesul dispare fără stack trace Java („Killed”)               | Memorie (OOM) pe 512 MB — vezi nota despre `MaxRAMPercentage`                                |
