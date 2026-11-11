@@ -1,0 +1,53 @@
+# Configuratia de baza a backend-ului. Valorile secrete NU stau aici: vin din mediu (backend/.env local,
+# dashboard-ul gazdei in productie). Ce e aici sunt doar valori implicite sigure pentru dezvoltare.
+spring:
+  application:
+    name: cpa-backend
+  config:
+    # Incarca backend/.env (gitignorat) cand exista, ca sa nu exporti manual variabilele la fiecare pornire.
+    import: optional:file:.env[.properties]
+  threads:
+    virtual:
+      enabled: true
+  datasource:
+    # H2 in memorie, in modul PostgreSQL, ca aceleasi migrari Flyway sa ruleze local si in productie.
+    # In productie se suprascrie prin SPRING_DATASOURCE_URL / _USERNAME / _PASSWORD.
+    url: jdbc:h2:mem:cpa;MODE=PostgreSQL;DB_CLOSE_DELAY=-1
+  jpa:
+    open-in-view: false
+    hibernate:
+      ddl-auto: validate
+  ai:
+    openai:
+      # Lipsa cheii nu trebuie sa opreasca aplicatia (cerinta Faza 2); disponibilitatea consilierului
+      # se verifica separat, in pachetul `ai`. Valoarea reala vine DOAR din OPENAI_API_KEY.
+      api-key: ${OPENAI_API_KEY:}
+      chat:
+        options:
+          # Un singur model, dintr-o singura proprietate (ADR 0007).
+          model: ${cpa.llm.model}
+
+cpa:
+  llm:
+    model: ${CPA_LLM_MODEL:gpt-5-mini}
+  cors:
+    # Lista separata prin virgule; niciodata `*` (verificat la pornire).
+    allowed-origins: ${CORS_ALLOWED_ORIGINS:http://localhost:3000}
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health
+  endpoint:
+    health:
+      show-details: never
+
+springdoc:
+  api-docs:
+    path: /v3/api-docs
+
+logging:
+  pattern:
+    # Id-ul cererii apare in fiecare linie de log, ca sa poti lega un raspuns de eroare de jurnal.
+    correlation: "[%X{requestId:-}] "

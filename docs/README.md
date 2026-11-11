@@ -6,19 +6,21 @@
 
 [`plan.md`](plan.md) — planul de transformare și de execuție, pe faze (în engleză). [`adr/`](adr/) — câte o notă scurtă pentru fiecare decizie D1–D9.
 
+[`architecture/backend.md`](architecture/backend.md) — cum este construit backend-ul: versiuni fixate, straturi, configurare, securitate, teste, Docker și CI.
+
 Când se schimbă ceva pe drum, se actualizează în `requirements.md`, nu doar în conversație.
 
 ## Integrări externe
 
 Fiecare integrare externă are propriul folder, cu pașii manuali pe care trebuie să-i facă omul: cont, generare de chei, click-uri în dashboard-ul lor, costuri. Codul îl scrie agentul; pașii manuali se uită imediat dacă nu-i notează nimeni — la reinstalare, pe alt calculator sau la deploy îi cauți de la zero.
 
-Folderele `anthropic/`, `nextauth/` și `openai/` descriu încă vechea aplicație (SkillForge). Ele se rescriu sau se șterg în Faza 6 și Faza 9, odată cu codul server pe care îl documentează; `render/` și `neon/` apar în Faza 3.
+Folderele `anthropic/` și `nextauth/` descriu încă vechea aplicație (SkillForge) și se șterg în Faza 6, odată cu codul server pe care îl documentează; `openai/` descrie deja backend-ul; `render/` și `neon/` apar în Faza 3.
 
 | Integrare | La ce pas a intrat                                      | Link                                         |
 | --------- | ------------------------------------------------------- | -------------------------------------------- |
 | Vercel    | Faza 4.1 (veche) — publicare și Preview/Production      | [`vercel/README.md`](vercel/README.md)       |
 | Anthropic | veche — se șterge în Faza 6                             | [`anthropic/README.md`](anthropic/README.md) |
-| OpenAI    | veche — se rescrie în Faza 5 (un singur model, backend) | [`openai/README.md`](openai/README.md)       |
+| OpenAI    | Faza 2 — dependență + configurație backend (apeluri din Faza 5) | [`openai/README.md`](openai/README.md) |
 | Auth.js   | veche — se șterge în Faza 6 (identitate anonimă, D3)    | [`nextauth/README.md`](nextauth/README.md)   |
 
 Formatul obligatoriu al unui astfel de fișier: [`_template/README.md`](_template/README.md).

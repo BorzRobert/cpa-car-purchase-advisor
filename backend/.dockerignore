@@ -1,0 +1,8 @@
+# Contextul de build trimis catre Docker contine doar ce trebuie: fara build-uri locale si, mai ales, fara `.env` cu chei.
+target/
+.env
+.env.*
+!.env.example
+.git
+.idea/
+*.log

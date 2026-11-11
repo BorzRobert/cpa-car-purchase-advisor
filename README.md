@@ -2,7 +2,7 @@
 
 Consilier personal pentru cumpărarea unei mașini. Un **agent AI** află nevoile cumpărătorului, caută și compară mașini dintr-un catalog propriu, calculează costul total de deținere și explică de ce recomandă ce recomandă. Prețurile și cifrele vin din unelte deterministe din backend, nu din memoria modelului.
 
-**Stadiul actual:** Faza 1 — frontend-ul (Next.js) a fost mutat în `frontend/`; backend-ul Java (Spring Boot) începe în Faza 2. Planul complet este în [docs/plan.md](docs/plan.md), iar cerințele în [docs/requirements.md](docs/requirements.md).
+**Stadiul actual:** Faza 2 — backend-ul Java (Spring Boot) există în `backend/`, ca schelet (status, erori, CORS, OpenAPI, Docker, CI); domeniul, persistența și consilierul vin în fazele următoare. Planul complet este în [docs/plan.md](docs/plan.md), iar cerințele în [docs/requirements.md](docs/requirements.md).
 
 **Aplicația publicată:** se completează după Faza 3 (deploy).
 
@@ -11,7 +11,7 @@ Consilier personal pentru cumpărarea unei mașini. Un **agent AI** află nevoil
 | Cale                   | Ce e                                                                             |
 | ---------------------- | -------------------------------------------------------------------------------- |
 | `frontend/`            | aplicația Next.js (UI); rulează pe Vercel                                        |
-| `backend/`             | serviciul Java 25 / Spring Boot — **nu există încă**, se adaugă în Faza 2        |
+| `backend/`             | serviciul Java 25 / Spring Boot 4 (API, logică de produs, singurul apel către OpenAI) |
 | `docs/`                | cerințe, plan, ADR-uri, documentația integrărilor                                |
 | `scripts/`             | sincronizarea instrucțiunilor pentru agenți și a skill-urilor, hook-ul de commit |
 | `.claude/`, `.github/` | skill-uri și instrucțiuni pentru agenți (generate din `AGENTS.md`)               |
@@ -36,7 +36,20 @@ npm run dev   # http://localhost:3000
 
 Variabilele de mediu ale frontend-ului sunt în `frontend/.env.example`; valorile reale merg în `frontend/.env.local` (gitignorat).
 
-Backend: va fi descris aici când apare, în Faza 2 (JDK 25 și Maven Wrapper, fără Maven global).
+Backend (JDK 25 — Temurin — cu `JAVA_HOME` setat pe el; Maven Wrapper, fără Maven global):
+
+```bash
+cd backend
+./mvnw spring-boot:run   # http://localhost:8080/api/v1/health
+```
+
+Pornește și fără cheie OpenAI. Variabilele sunt în `backend/.env.example` (copie în `backend/.env`, gitignorat); detalii în [docs/architecture/backend.md](docs/architecture/backend.md) și [docs/openai/README.md](docs/openai/README.md).
+
+| Comandă (în `backend/`)                    | Ce face                                                           |
+| ------------------------------------------ | ----------------------------------------------------------------- |
+| `./mvnw verify`                            | compilează și rulează toate testele (inclusiv ArchUnit)           |
+| `./mvnw spring-boot:run`                   | pornește serviciul local (H2 în memorie)                          |
+| `docker build -t cpa-backend backend`      | construiește imaginea Docker                                      |
 
 ## Convenția de commit
 
