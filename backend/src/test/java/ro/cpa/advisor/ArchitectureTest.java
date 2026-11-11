@@ -15,7 +15,7 @@ import com.tngtech.archunit.lang.ArchRule;
 @AnalyzeClasses(packages = "ro.cpa.advisor", importOptions = ImportOption.DoNotIncludeTests.class)
 class ArchitectureTest {
 
-    // `repository` nu are inca clase (Faza 4), de aceea straturile sunt optionale.
+    // Straturile raman optionale: un strat fara clase inca (de exemplu `ai`, pana in Faza 5) nu trebuie sa pice testul.
     @ArchTest
     static final ArchRule layersAreRespected = layeredArchitecture()
             .consideringOnlyDependenciesInLayers()

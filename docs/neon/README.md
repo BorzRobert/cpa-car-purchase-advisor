@@ -4,7 +4,7 @@
 
 Neon găzduiește baza de date PostgreSQL de producție a CPA. Discul serviciului de pe Render este efemer (se pierde la fiecare deploy, repornire sau adormire), deci orice date care trebuie să supraviețuiască — sesiuni, profiluri, conversații, catalog — stau în Neon ([ADR 0005](../adr/0005-baza-de-date.md)). Local și în teste backend-ul folosește H2 în memorie; **aceleași migrări Flyway** rulează pe ambele.
 
-**Adăugată la:** Faza 3 (conectare și migrarea de bază goală `V1__baseline.sql`); primele tabele reale apar în Faza 4.
+**Adăugată la:** Faza 3 (conectare și migrarea de bază goală `V1__baseline.sql`); Faza 4 adaugă schema reală (`V2__domain_schema.sql`) și catalogul de pornire (`V3__seed_catalogue.sql`), aplicate automat pe Neon la primul deploy al backend-ului din Faza 4.
 **Obligatorie / opțională:** obligatorie în producție (profilul `prod` refuză să pornească fără `SPRING_DATASOURCE_URL`); inutilă pentru dezvoltarea locală.
 
 ## Cont & chei
@@ -81,7 +81,7 @@ Verificat la **2026-11-11** pe [neon.com/docs/introduction/plans](https://neon.c
 Ce contează pentru CPA:
 
 - **Cold start-ul bazei e mic** (sute de ms) față de cel al serviciului Render (~1 minut + pornirea JVM). Backend-ul îl absoarbe prin pool: o conexiune mai veche de 4 minute nu se refolosește, o conexiune inactivă e verificată înainte de utilizare, iar la pornire Hikari așteaptă până la 60 s după bază, iar Flyway reîncearcă conectarea (`application-prod.yml`). Pornirea fără bază și recuperarea ei după revenire au fost verificate local (container Postgres oprit, apoi pornit, în timp ce backend-ul pornea).
-- **Cota de 100 CU-ore** se consumă doar cât computul e treaz. De aceea `/actuator/health` **nu interoghează baza** în producție (`management.health.db.enabled=false`) și Hikari nu folosește `keepalive-time`: altfel health check-ul Render (la câteva secunde) ar ține Neon treaz non-stop și cota s-ar termina în câteva zile. Disponibilitatea bazei va fi verificată de un grup de readiness separat, odată cu persistența (Faza 4).
+- **Cota de 100 CU-ore** se consumă doar cât computul e treaz. De aceea `/actuator/health` **nu interoghează baza** în producție (`management.health.db.enabled=false`) și Hikari nu folosește `keepalive-time`: altfel health check-ul Render (la câteva secunde) ar ține Neon treaz non-stop și cota s-ar termina în câteva zile. Disponibilitatea bazei **nu** are încă un grup de readiness separat: era prevăzut pentru Faza 4, dar este amânat la Faza 9 (hardening), ca health check-ul Render să rămână fără interogări. Până atunci, o bază indisponibilă se vede ca `500` pe endpoint-urile cu date, nu pe `/actuator/health`.
 - **1 GB** acoperă cu mult catalogul curat și conversațiile text ale unui proiect de curs; urmărește consumul în consola Neon.
 
 Verifică cifrele actuale înainte să te bazezi pe ele — ofertele planurilor gratuite se schimbă.
@@ -106,8 +106,8 @@ pg_dump "postgresql://<utilizator>@<host>/<baza>?sslmode=require" --no-owner -f 
    CORS_ALLOWED_ORIGINS=http://localhost:3000 ./mvnw spring-boot:run
    docker exec cpa-pg psql -U postgres -d cpa -c "select version, description, success from flyway_schema_history;"
    ```
-   Rezultat așteptat: o linie `1 | baseline | t`. (Verificat la 2026-11-11 cu PostgreSQL 17 și imaginea Docker a backend-ului.)
-2. Pe Neon, după primul deploy: în **SQL Editor** rulează `select version, description, success from flyway_schema_history;` — aceeași linie.
+   Rezultat așteptat: trei linii, `1 | baseline`, `2 | domain schema`, `3 | seed catalogue`, toate cu `t` (în Faza 3 era doar prima). Cu aceeași pornire: `docker exec cpa-pg psql -U postgres -d cpa -c "select count(*) from vehicle_variant;"` → `21`.
+2. Pe Neon, după primul deploy din Faza 4: în **SQL Editor** rulează aceeași interogare pe `flyway_schema_history` — trebuie să apară `V2` și `V3`. Migrările sunt aplicate la pornirea backend-ului; **nu se editează niciodată** după ce au rulat pe Neon (Flyway ar refuza pornirea din cauza sumei de control): orice schimbare de schemă sau de catalog este o migrare nouă.
 3. Backend pornit pe Render: `GET <URL-backend>/api/v1/health` răspunde `200` (endpoint-ul nu atinge baza; pornirea cu succes dovedește că Flyway s-a conectat).
 
 Erori tipice:
