@@ -43,6 +43,7 @@ public record CpaProperties(
             @NotBlank String model,
             @Positive int maxOutputTokens,
             @Positive int historyMessages,
+            @Positive int summaryBatchMessages,
             @Positive int maxToolCalls,
             @PositiveOrZero double inputUsdPerMillion,
             @PositiveOrZero double outputUsdPerMillion) {}

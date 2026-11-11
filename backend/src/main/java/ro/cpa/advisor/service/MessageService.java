@@ -2,6 +2,7 @@ package ro.cpa.advisor.service;
 
 import java.time.Clock;
 import java.util.List;
+import java.util.Optional;
 import java.util.UUID;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -50,8 +51,14 @@ public class MessageService {
         this.clock = clock;
     }
 
-    /** Mesajul nou al utilizatorului, salvat, plus ultimele mesaje dinaintea lui (contextul conversatiei). */
-    public record Turn(Message userMessage, List<Message> history) {}
+    /**
+     * Mesajul nou al utilizatorului, salvat, plus contextul conversatiei: rezumatul mesajelor vechi si mesajele care nu
+     * sunt inca acoperite de el (cel mult fereastra + un lot, chiar daca rezumarea ramane in urma).
+     */
+    public record Turn(Message userMessage, List<Message> history, String summary) {}
+
+    /** Mesajele iesite din fereastra, de rezumat acum, si cate mesaje va acoperi rezumatul dupa aceea. */
+    public record SummaryJob(String previousSummary, List<Message> olderMessages, int coveredAfter) {}
 
     @Transactional(readOnly = true)
     public List<Message> list(UUID sessionId, UUID conversationId) {
@@ -83,8 +90,42 @@ public class MessageService {
         } else {
             conversation.touch(now);
         }
-        int from = Math.max(0, existing.size() - properties.llm().historyMessages());
-        return new Turn(saved.toDomain(), existing.subList(from, existing.size()));
+        int window = properties.llm().historyMessages();
+        int covered = Math.min(conversation.getSummaryMessageCount(), existing.size());
+        List<Message> notSummarized = existing.subList(covered, existing.size());
+        int cap = window + properties.llm().summaryBatchMessages();
+        List<Message> history = notSummarized.size() <= cap ? notSummarized : notSummarized.subList(notSummarized.size() - cap, notSummarized.size());
+        return new Turn(saved.toDomain(), history, conversation.getSummary());
+    }
+
+    /**
+     * Daca au iesit din fereastra destule mesaje nerezumate (un lot), le intoarce pentru rezumare. Rezumarea se face rar,
+     * pe loturi, ca sa nu coste un apel catre model la fiecare mesaj.
+     */
+    @Transactional(readOnly = true)
+    public Optional<SummaryJob> pendingSummary(UUID conversationId) {
+        var conversation = conversations.findById(conversationId);
+        if (conversation.isEmpty()) {
+            return Optional.empty();
+        }
+        List<Message> all = messages.findByConversationIdOrderByCreatedAtAscIdAsc(conversationId).stream().map(MessageEntity::toDomain).toList();
+        int window = properties.llm().historyMessages();
+        int covered = Math.min(conversation.get().getSummaryMessageCount(), all.size());
+        if (all.size() - covered < window + properties.llm().summaryBatchMessages()) {
+            return Optional.empty();
+        }
+        int coveredAfter = all.size() - window;
+        return Optional.of(new SummaryJob(conversation.get().getSummary(), all.subList(covered, coveredAfter), coveredAfter));
+    }
+
+    /** Salveaza rezumatul pus la zi (daca conversatia mai exista si rezumatul chiar avanseaza). */
+    @Transactional
+    public void saveSummary(UUID conversationId, String summary, int coveredMessages) {
+        conversations.findById(conversationId).ifPresent(conversation -> {
+            if (coveredMessages > conversation.getSummaryMessageCount()) {
+                conversation.updateSummary(summary, coveredMessages);
+            }
+        });
     }
 
     /**

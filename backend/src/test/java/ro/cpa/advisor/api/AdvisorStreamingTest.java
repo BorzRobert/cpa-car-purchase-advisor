@@ -74,12 +74,13 @@ class AdvisorStreamingTest {
                 .andReturn().getResponse().getContentAsString();
 
         List<SseTestSupport.Sse> events = parse(body);
-        assertThat(events).extracting(SseTestSupport.Sse::name).containsExactly("meta", "token", "token", "token", "done");
+        assertThat(events).extracting(SseTestSupport.Sse::name).containsExactly("meta", "token", "done");
         String messageId = JsonPath.read(events.get(0).data(), "$.messageId");
         assertThat(JsonPath.<String>read(events.get(0).data(), "$.conversationId")).isEqualTo(conversation);
-        assertThat(events.subList(1, 4)).extracting(e -> JsonPath.<String>read(e.data(), "$.delta")).containsExactly("Buna! ", "Ai un buget ", "in minte?");
-        assertThat(JsonPath.<Integer>read(events.get(4).data(), "$.usage.input")).isEqualTo(300);
-        assertThat(JsonPath.<Integer>read(events.get(4).data(), "$.usage.output")).isEqualTo(40);
+        // Gardul de scurgere tine ultimele cuvinte pana la sfarsit, deci textul poate veni in mai putine bucati.
+        assertThat(events.subList(1, events.size() - 1)).extracting(e -> JsonPath.<String>read(e.data(), "$.delta")).containsExactly("Buna! Ai un buget in minte?");
+        assertThat(JsonPath.<Integer>read(events.get(events.size() - 1).data(), "$.usage.input")).isEqualTo(300);
+        assertThat(JsonPath.<Integer>read(events.get(events.size() - 1).data(), "$.usage.output")).isEqualTo(40);
 
         // Raspunsul salvat are exact id-ul anuntat in `meta`, iar consumul real al raspunsului este inregistrat.
         mvc.perform(MockMvcRequestBuilders.get("/api/v1/conversations/" + conversation + "/messages").header(HttpHeaders.AUTHORIZATION, "Bearer " + token))
@@ -138,7 +139,7 @@ class AdvisorStreamingTest {
 
         assertThat(body).contains(": keep-alive\n\n");
         // Comentariile nu sunt evenimente: parserul le ignora, iar fluxul ramane meta, token..., done.
-        assertThat(parse(body)).extracting(SseTestSupport.Sse::name).containsExactly("meta", "token", "token", "token", "done");
+        assertThat(parse(body)).extracting(SseTestSupport.Sse::name).containsExactly("meta", "token", "done");
     }
 
     @Test

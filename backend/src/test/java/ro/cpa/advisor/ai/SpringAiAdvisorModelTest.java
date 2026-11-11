@@ -65,11 +65,11 @@ class SpringAiAdvisorModelTest {
     };
     private final SpringAiAdvisorModel advisor = new SpringAiAdvisorModel(
             ChatClient.builder(chat),
-            new AdvisorTools(toolbox),
-            new CpaProperties(new CpaProperties.Llm("test-model", 1000, 20, 8, 2.0, 12.0), null, null, null, null));
+            new AdvisorTools(toolbox, tools.jackson.databind.json.JsonMapper.builder().build()),
+            new CpaProperties(new CpaProperties.Llm("test-model", 1000, 20, 10, 8, 2.0, 12.0), null, null, null, null));
 
     private static AdvisorRequest request(String userMessage) {
-        return new AdvisorRequest(UUID.randomUUID(), BuyerProfile.empty(), List.of(), userMessage);
+        return new AdvisorRequest(UUID.randomUUID(), BuyerProfile.empty(), null, List.of(), userMessage);
     }
 
     private static List<String> deltas(List<AdvisorEvent> events) {
@@ -83,7 +83,7 @@ class SpringAiAdvisorModelTest {
 
         AdvisorOutcome outcome = advisor.stream(request("salut"), events::add);
 
-        assertThat(deltas(events)).containsExactly("Ana ", "are ", "mere");
+        assertThat(String.join("", deltas(events))).isEqualTo("Ana are mere");
         assertThat(outcome.text()).isEqualTo("Ana are mere");
         assertThat(outcome.inputTokens()).isEqualTo(500);
         assertThat(outcome.outputTokens()).isEqualTo(30);
@@ -93,7 +93,7 @@ class SpringAiAdvisorModelTest {
 
     @Test
     void anAbortedStreamKeepsThePartialTextAndEstimatesUsage() {
-        chat.enqueue(Reply.of("primul ", "al doilea ", "al treilea").withUsage(500, 30));
+        chat.enqueue(Reply.of("a1 a2 a3 a4 a5 a6 a7 a8 a9 a10 a11 a12 ", "b1 b2 b3 b4 b5 b6 b7 b8 b9 b10 b11 b12 ", "c1 c2 c3 c4 c5 c6 c7 c8 c9 c10 c11 c12").withUsage(500, 30));
         List<AdvisorEvent> events = new ArrayList<>();
 
         AdvisorOutcome outcome = advisor.stream(request("salut"), event -> {
@@ -104,7 +104,7 @@ class SpringAiAdvisorModelTest {
         });
 
         assertThat(outcome.aborted()).isTrue();
-        assertThat(outcome.text()).isEqualTo("primul al doilea ");
+        assertThat(outcome.text()).isNotEmpty().startsWith("a1 a2");
         // O intrerupere nu e gratuita: tokenii se estimeaza, ca „opreste” sa nu poata ocoli bugetul.
         assertThat(outcome.estimated()).isTrue();
         assertThat(outcome.inputTokens()).isPositive();
@@ -128,7 +128,7 @@ class SpringAiAdvisorModelTest {
                 new ro.cpa.advisor.domain.Message(UUID.randomUUID(), UUID.randomUUID(), MessageRole.USER, "primul meu mesaj", null),
                 new ro.cpa.advisor.domain.Message(UUID.randomUUID(), UUID.randomUUID(), MessageRole.ASSISTANT, "raspunsul tau", null));
 
-        advisor.stream(new AdvisorRequest(UUID.randomUUID(), profile, history, "al doilea {nume}"), event -> {});
+        advisor.stream(new AdvisorRequest(UUID.randomUUID(), profile, null, history, "al doilea {nume}"), event -> {});
 
         List<Message> sent = chat.lastPrompt().getInstructions();
         assertThat(sent).extracting(m -> m.getMessageType().name()).containsExactly("SYSTEM", "USER", "ASSISTANT", "USER");

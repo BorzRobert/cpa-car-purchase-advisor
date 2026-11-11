@@ -46,7 +46,7 @@ public class SpringAiAdvisorModel implements AdvisorModel {
     @Override
     public AdvisorOutcome stream(AdvisorRequest request, Consumer<AdvisorEvent> events) {
         List<Message> messages = new ArrayList<>();
-        messages.add(new SystemMessage(AdvisorPrompt.system(request.profile())));
+        messages.add(new SystemMessage(AdvisorPrompt.system(request.profile(), request.summary())));
         for (ro.cpa.advisor.domain.Message turn : request.history()) {
             messages.add(turn.role() == MessageRole.USER
                     ? new UserMessage(AdvisorPrompt.userTurn(turn.content()))
@@ -62,12 +62,13 @@ public class SpringAiAdvisorModel implements AdvisorModel {
                 .build();
 
         StringBuilder text = new StringBuilder();
+        PromptLeakGuard guard = new PromptLeakGuard(AdvisorPrompt.protectedTexts());
         Usage usage = null;
         boolean aborted = false;
         ToolRun run = new ToolRun(request.sessionId(), events, llm.maxToolCalls());
         var call = chat.prompt(new Prompt(messages, options)).tools(tools).toolContext(Map.of(ToolRun.CONTEXT_KEY, run));
         try (Stream<ChatResponse> responses = call.stream().chatResponse().toStream()) {
-            for (var it = responses.iterator(); it.hasNext(); ) {
+            for (var it = responses.iterator(); it.hasNext() && !guard.leaked(); ) {
                 ChatResponse response = it.next();
                 Usage reported = response.getMetadata() == null ? null : response.getMetadata().getUsage();
                 // ToolCallingAdvisor aduna consumul peste apelurile succesive ale aceluiasi raspuns (`UsageAccumulator`):
@@ -79,9 +80,11 @@ public class SpringAiAdvisorModel implements AdvisorModel {
                         ? null
                         : response.getResult().getOutput().getText();
                 if (delta != null && !delta.isEmpty()) {
-                    text.append(delta);
-                    events.accept(new AdvisorEvent.Token(delta));
+                    emit(guard.accept(delta), text, events);
                 }
+            }
+            if (!guard.leaked()) {
+                emit(guard.flush(), text, events);
             }
         } catch (StreamClosedException closed) {
             aborted = true;
@@ -91,10 +94,49 @@ public class SpringAiAdvisorModel implements AdvisorModel {
             throw new AdvisorUnavailableException(failure);
         }
 
-        if (usage != null && !aborted) {
-            return new AdvisorOutcome(text.toString(), usage.getPromptTokens(), usage.getCompletionTokens(), false, false);
+        boolean blocked = guard.leaked();
+        List<String> toolResults = run.results();
+        if (usage != null && !aborted && !blocked) {
+            return new AdvisorOutcome(text.toString(), usage.getPromptTokens(), usage.getCompletionTokens(), false, false, false, toolResults);
         }
         int promptChars = messages.stream().mapToInt(m -> m.getText() == null ? 0 : m.getText().length()).sum();
-        return new AdvisorOutcome(text.toString(), TokenEstimate.of(promptChars), TokenEstimate.of(text.length()), true, aborted);
+        return new AdvisorOutcome(text.toString(), TokenEstimate.of(promptChars), TokenEstimate.of(text.length()), true, aborted, blocked, toolResults);
+    }
+
+    private static void emit(String released, StringBuilder text, Consumer<AdvisorEvent> events) {
+        if (!released.isEmpty()) {
+            text.append(released);
+            events.accept(new AdvisorEvent.Token(released));
+        }
+    }
+
+    @Override
+    public SummaryOutcome summarize(String previousSummary, List<ro.cpa.advisor.domain.Message> olderMessages) {
+        List<String> lines = olderMessages.stream()
+                .map(m -> (m.role() == MessageRole.USER ? "[buyer] " : "[advisor] ") + m.content())
+                .toList();
+        List<Message> messages = List.of(
+                new SystemMessage(AdvisorPrompt.summarizerSystem()), new UserMessage(AdvisorPrompt.summaryRequest(previousSummary, lines)));
+        OpenAiChatOptions options = OpenAiChatOptions.builder().model(llm.model()).maxCompletionTokens(llm.maxOutputTokens()).build();
+        try {
+            ChatResponse response = chat.prompt(new Prompt(messages, options)).call().chatResponse();
+            String summary = response == null || response.getResult() == null ? null : response.getResult().getOutput().getText();
+            if (summary == null || summary.isBlank()) {
+                throw new AdvisorUnavailableException();
+            }
+            String capped = summary.strip();
+            capped = capped.length() <= AdvisorPrompt.MAX_SUMMARY_CHARS ? capped : capped.substring(0, AdvisorPrompt.MAX_SUMMARY_CHARS);
+            Usage usage = response.getMetadata() == null ? null : response.getMetadata().getUsage();
+            if (usage != null && usage.getTotalTokens() != null && usage.getTotalTokens() > 0) {
+                return new SummaryOutcome(capped, usage.getPromptTokens(), usage.getCompletionTokens(), false);
+            }
+            int promptChars = messages.stream().mapToInt(m -> m.getText() == null ? 0 : m.getText().length()).sum();
+            return new SummaryOutcome(capped, TokenEstimate.of(promptChars), TokenEstimate.of(capped.length()), true);
+        } catch (AdvisorUnavailableException failure) {
+            throw failure;
+        } catch (RuntimeException failure) {
+            log.warn("Summary call failed: {}", failure.getClass().getSimpleName());
+            throw new AdvisorUnavailableException(failure);
+        }
     }
 }

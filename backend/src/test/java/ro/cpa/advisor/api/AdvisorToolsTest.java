@@ -70,7 +70,7 @@ class AdvisorToolsTest {
 
         List<Sse> events = parse(send(token, newConversation(token), "Caut un hatchback sub 30000 EUR").andExpect(status().isOk()).andReturn().getResponse().getContentAsString());
 
-        assertThat(events).extracting(Sse::name).containsExactly("meta", "tool", "vehicles", "tool", "token", "token", "token", "done");
+        assertThat(events).extracting(Sse::name).containsExactly("meta", "tool", "vehicles", "tool", "token", "done");
         assertThat(JsonPath.<String>read(events.get(1).data(), "$.name")).isEqualTo("searchVehicles");
         assertThat(JsonPath.<String>read(events.get(1).data(), "$.status")).isEqualTo("started");
         assertThat(JsonPath.<String>read(events.get(3).data(), "$.status")).isEqualTo("finished");
@@ -88,8 +88,8 @@ class AdvisorToolsTest {
         });
 
         // Consumul este totalul ambelor apeluri ale modelului (ToolCallingAdvisor il aduna): 100 + 400 de intrare, 10 + 25 de iesire.
-        assertThat(JsonPath.<Integer>read(events.get(7).data(), "$.usage.input")).isEqualTo(500);
-        assertThat(JsonPath.<Integer>read(events.get(7).data(), "$.usage.output")).isEqualTo(35);
+        assertThat(JsonPath.<Integer>read(events.get(events.size() - 1).data(), "$.usage.input")).isEqualTo(500);
+        assertThat(JsonPath.<Integer>read(events.get(events.size() - 1).data(), "$.usage.output")).isEqualTo(35);
     }
 
     @Test

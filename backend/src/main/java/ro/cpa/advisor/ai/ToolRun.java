@@ -1,6 +1,8 @@
 package ro.cpa.advisor.ai;
 
 import java.util.UUID;
+import java.util.List;
+import java.util.concurrent.CopyOnWriteArrayList;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.function.Consumer;
 import ro.cpa.advisor.domain.AdvisorEvent;
@@ -18,6 +20,7 @@ final class ToolRun {
     private final Consumer<AdvisorEvent> events;
     private final int maxCalls;
     private final AtomicInteger calls = new AtomicInteger();
+    private final List<String> results = new CopyOnWriteArrayList<>();
 
     ToolRun(UUID sessionId, Consumer<AdvisorEvent> events, int maxCalls) {
         this.sessionId = sessionId;
@@ -31,6 +34,15 @@ final class ToolRun {
 
     void emit(AdvisorEvent event) {
         events.accept(event);
+    }
+
+    /** Pastreaza rezultatul unei unelte (JSON): materialul cu care se verifica apoi ancorarea cifrelor din raspuns. */
+    void record(String resultJson) {
+        results.add(resultJson);
+    }
+
+    List<String> results() {
+        return List.copyOf(results);
     }
 
     /** `false` cand plafonul de apeluri a fost depasit. */

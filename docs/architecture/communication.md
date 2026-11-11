@@ -134,7 +134,7 @@ Cheia „per IP” este adresa clientului: în producție se ia din `X-Forwarded
 
 `POST /api/v1/conversations/{id}/messages` răspunde cu `text/event-stream;charset=UTF-8`, cu antetele `Cache-Control: no-cache` și `X-Accel-Buffering: no`, și un comentariu SSE de heartbeat (`: keep-alive`) la ~15 secunde (`cpa.stream.heartbeat-seconds`), ca proxy-urile să nu închidă sau să nu buferizeze fluxul. Clientul folosește `fetch` + `ReadableStream` (nu `EventSource`, care nu poate trimite POST sau antete) și poate trimite `Accept: text/event-stream, application/problem+json`; oprirea se face cu `AbortController`: serverul oprește apelul către model, iar consumul răspunsului parțial se înregistrează estimat. Verificările (proprietar, buget, text, limită de mesaje, cheie) rămân înainte de orice apel către model.
 
-Un cadru arată așa (fiecare `data:` este o singură linie JSON):
+Un cadru arată așa (fiecare `data:` este o singură linie JSON). Notă (5d): textul unui răspuns poate veni în **mai puține bucăți `token`** decât le produce modelul (un gard împotriva scurgerii promptului ține ultimele ~11 cuvinte până la sfârșit); clientul concatenează `delta`.
 
 ```text
 event: meta

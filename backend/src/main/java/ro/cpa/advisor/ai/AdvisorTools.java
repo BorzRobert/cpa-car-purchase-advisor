@@ -36,6 +36,7 @@ import ro.cpa.advisor.domain.TcoResult;
 import ro.cpa.advisor.domain.VehicleCard;
 import ro.cpa.advisor.domain.VehicleFilter;
 import ro.cpa.advisor.domain.VehicleScorer;
+import tools.jackson.databind.json.JsonMapper;
 
 /**
  * Uneltele deterministe ale consilierului. Descrierile sunt pentru model (engleza): ele sunt singura sursa dupa care
@@ -59,9 +60,11 @@ public class AdvisorTools {
     private static final String INDICATIVE = "Prices and costs are indicative figures from a curated catalogue, valid on dataAsOf; present them as such, never as offers.";
 
     private final AdvisorToolbox toolbox;
+    private final JsonMapper json;
 
-    public AdvisorTools(AdvisorToolbox toolbox) {
+    public AdvisorTools(AdvisorToolbox toolbox, JsonMapper json) {
         this.toolbox = toolbox;
+        this.json = json;
     }
 
     /** Ce vede modelul dupa o cautare sau o comparatie. */
@@ -348,6 +351,7 @@ public class AdvisorTools {
         run.emit(new AdvisorEvent.Tool(tool, AdvisorEvent.Tool.STARTED, startSummary));
         try {
             Outcome outcome = body.apply(run);
+            run.record(json.writeValueAsString(outcome.result()));
             run.emit(new AdvisorEvent.Tool(tool, AdvisorEvent.Tool.FINISHED, outcome.summary()));
             return outcome.result();
         } catch (StreamClosedException closed) {

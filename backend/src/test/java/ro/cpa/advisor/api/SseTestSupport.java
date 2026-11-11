@@ -4,13 +4,13 @@ import java.util.ArrayList;
 import java.util.List;
 
 /** Citeste un corp `text/event-stream` in evenimente (comentariile de heartbeat se ignora). */
-final class SseTestSupport {
+public final class SseTestSupport {
 
-    record Sse(String name, String data) {}
+    public record Sse(String name, String data) {}
 
     private SseTestSupport() {}
 
-    static List<Sse> parse(String body) {
+    public static List<Sse> parse(String body) {
         List<Sse> events = new ArrayList<>();
         for (String block : body.split("\n\n")) {
             String name = null;

@@ -21,6 +21,14 @@ public class ConversationEntity {
     @Column(length = 120)
     private String title;
 
+    // Rezumatul rulant al mesajelor vechi (memoria conversatiei); `null` pana cand conversatia depaseste fereastra.
+    @Column(length = 4000)
+    private String summary;
+
+    // Cate mesaje de la inceputul conversatiei sunt acoperite de `summary`.
+    @Column(name = "summary_message_count", nullable = false)
+    private int summaryMessageCount;
+
     @Column(name = "created_at", nullable = false)
     private Instant createdAt;
 
@@ -39,6 +47,19 @@ public class ConversationEntity {
 
     public String getTitle() {
         return title;
+    }
+
+    public String getSummary() {
+        return summary;
+    }
+
+    public int getSummaryMessageCount() {
+        return summaryMessageCount;
+    }
+
+    public void updateSummary(String newSummary, int coveredMessages) {
+        this.summary = newSummary;
+        this.summaryMessageCount = coveredMessages;
     }
 
     public void rename(String newTitle, Instant now) {
