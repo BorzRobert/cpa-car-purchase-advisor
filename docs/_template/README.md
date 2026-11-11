@@ -9,7 +9,7 @@
 
 ## Ce face
 
-La ce ne folosește în SkillForge, în 2–3 propoziții: ce problemă rezolvă și ce s-ar rupe fără ea.
+La ce ne folosește în CPA, în 2–3 propoziții: ce problemă rezolvă și ce s-ar rupe fără ea.
 Plus: la ce pas / fază a intrat.
 
 ## Cont & chei
@@ -47,7 +47,7 @@ Ce NU poate face agentul și trebuie făcut de mână:
 - Model de facturare (ex. per milion de tokeni, separat intrare/ieșire), cu cifrele de la data verificării.
 - Ce oferă planul gratuit și unde se termină.
 - Rate limits care ne pot afecta (cereri/minut, tokeni/minut).
-- Ce umflă factura în SkillForge (ex. context mare trimis la fiecare mesaj).
+- Ce umflă factura în CPA (ex. context mare trimis la fiecare mesaj).
 
 ## Verificare
 
