@@ -33,8 +33,8 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "SkillForge",
-  description: "Copilot personal de skills și carieră"
+  title: "CPA — Car Purchase Advisor",
+  description: "Consilier personal pentru cumpărarea unei mașini"
 };
 
 /**
