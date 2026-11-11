@@ -1,5 +1,5 @@
 /**
- * Ruta `/` — aplicația SkillForge.
+ * Ruta `/` — aplicația CPA (Car Purchase Advisor).
  *
  * DE CE pagina asta doar compune și nu conține logică:
  * ea răspunde la o singură întrebare — „din ce zone e făcut ecranul?". Cele trei zone
@@ -7,9 +7,8 @@
  * agentul, nu se atinge nimic aici.
  *
  * DE CE `SidebarProvider` e aici și nu în layout:
- * ruta `/demo` (din pasul anterior, cu componenta client vs. server) nu are sidebar. Dacă
- * providerul ar fi în layout, ar împinge structura de sidebar peste toate rutele viitoare —
- * inclusiv pagini de tip landing sau login, care n-o vor.
+ * nu toate rutele viitoare vor avea sidebar. Dacă providerul ar fi în layout, ar împinge
+ * structura de sidebar peste toate rutele — inclusiv pagini de tip landing, care n-o vor.
  *
  * DE CE dialogul de preferințe e randat aici, la același nivel:
  * ca să fie deasupra întregii aplicații, nu în interiorul sidebar-ului. Un dialog randat
