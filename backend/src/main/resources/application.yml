@@ -11,7 +11,7 @@ spring:
       enabled: true
   datasource:
     # H2 in memorie, in modul PostgreSQL, ca aceleasi migrari Flyway sa ruleze local si in productie.
-    # In productie se suprascrie prin SPRING_DATASOURCE_URL / _USERNAME / _PASSWORD.
+    # In productie (profilul `prod`, vezi application-prod.yml) se cere SPRING_DATASOURCE_URL / _USERNAME / _PASSWORD.
     url: jdbc:h2:mem:cpa;MODE=PostgreSQL;DB_CLOSE_DELAY=-1
   jpa:
     open-in-view: false

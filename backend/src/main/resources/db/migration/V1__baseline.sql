@@ -1,0 +1,4 @@
+-- Migrare de baza, intentionat goala: schema reala (sesiuni, profil, conversatii, vehicule) apare in Faza 4.
+-- Exista acum ca sa dovedim ca Flyway ruleaza la pornire pe H2 si pe PostgreSQL (Neon) si ca istoricul
+-- `flyway_schema_history` se creeaza; abia apoi migrarile adevarate au pe ce sa se sprijine.
+-- Regula pentru Faza 4: aceeasi migrare trebuie sa treaca pe ambele baze, deci SQL standard, fara functii specifice.

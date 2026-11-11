@@ -2,7 +2,7 @@
 
 > Acest fișier este **sursa de adevăr** pentru ce construim. Orice schimbare de direcție se scrie AICI, nu doar în conversație. Planul de execuție pe faze, cu deciziile D1–D9, este în [`plan.md`](plan.md) (în engleză); deciziile au câte un ADR în [`adr/`](adr/).
 >
-> Ultima actualizare: 2026-11-11 · Faza curentă: **Faza 2 — schelet backend** (Spring Boot în `backend/`: straturi, `ProblemDetail`, CORS, OpenAPI, ArchUnit, Docker, CI; Faza 1 — restructurarea repo-ului — este încheiată)
+> Ultima actualizare: 2026-11-11 · Faza curentă: **Faza 3 — walking skeleton deploy** (backend pe Render + Neon, frontend pe Vercel cu apel „stare backend" și UX de cold start; Faza 2 — scheletul backend — este încheiată și integrată în `main`)
 
 ---
 
@@ -34,9 +34,9 @@ România/UE, prețuri în EUR (cu conversie în RON), interfața și `docs/` în
 - **`frontend/`** — Next.js 16 + React 19 + TypeScript + Tailwind v4 + shadcn/ui, folosit **doar ca UI**: fără Route Handlers, fără chei, doar `NEXT_PUBLIC_API_BASE_URL`.
 - **`backend/`** — Java 25 + Spring Boot 4.1.2 (Maven Wrapper), Spring AI 2.0.2 cu un singur model OpenAI, JPA + Flyway, PostgreSQL în producție și H2 local. Deține toată logica de produs: persona, uneltele, scoring-ul, TCO, memoria, limitele de rată și bugetul, persistența. Aplicația pornește și fără `OPENAI_API_KEY` (consilierul răspunde `503 advisor-not-configured`).
 - **Comunicare:** REST/JSON sub `/api/v1` și un endpoint SSE pentru răspunsuri în streaming; identitate prin token de sesiune anonim (`Authorization: Bearer`); contract definit prima dată (OpenAPI), tipurile TypeScript se generează din el.
-- **Hosting:** frontend pe Vercel, backend pe Render (Docker), bază de date pe Neon.
+- **Hosting:** frontend pe Vercel, backend pe Render (Docker, plan Free), bază de date pe Neon (Free). Backend-ul rulează în producție cu profilul Spring `prod` (baza din mediu, Swagger/OpenAPI oprite, pool reglat pentru Neon); migrările Flyway rulează la pornire pe H2 și pe PostgreSQL. CORS: listă explicită de origini (producția Vercel + aliasul stabil al branch-ului testat), fără `*` — vezi [`vercel/README.md`](vercel/README.md).
 
-Detaliile (diagrame, evenimente SSE, straturi) sunt în `plan.md` §2; backend-ul așa cum este construit acum e descris în [`architecture/backend.md`](architecture/backend.md), restul ajunge în `docs/architecture/` pe măsură ce fazele se livrează.
+Detaliile (diagrame, evenimente SSE, straturi) sunt în `plan.md` §2; backend-ul așa cum este construit acum e descris în [`architecture/backend.md`](architecture/backend.md), iar integrările în [`render/`](render/README.md), [`neon/`](neon/README.md) și [`vercel/`](vercel/README.md); restul ajunge în `docs/architecture/` pe măsură ce fazele se livrează.
 
 ---
 
@@ -46,9 +46,9 @@ Detaliile (diagrame, evenimente SSE, straturi) sunt în `plan.md` §2; backend-u
 | ---- | ------------------------------------------------------------------------------------------ | ----------- |
 | 0    | Decizii (ADR D1–D9), unelte, regula de commit `CPA-<titlu>`                                | livrată     |
 | 1    | Frontend în `frontend/`, curățenie de bază, documentație de pornire                        | livrată     |
-| 2    | Schelet backend Spring Boot (straturi, ProblemDetail, CORS, OpenAPI, ArchUnit, Docker, CI) | în curs     |
-| 3    | Deploy „walking skeleton” (Render + Neon + Vercel)                                         | următoarea  |
-| 4    | Domeniu, persistență, contract REST, sesiuni, limite                                       | planificată |
+| 2    | Schelet backend Spring Boot (straturi, ProblemDetail, CORS, OpenAPI, ArchUnit, Docker, CI) | livrată     |
+| 3    | Deploy „walking skeleton” (Render + Neon + Vercel): stare backend în UI, cold start, Flyway pe Postgres, `render.yaml`, CI frontend | în curs     |
+| 4    | Domeniu, persistență, contract REST, sesiuni, limite                                       | următoarea  |
 | 5    | Creierul consilierului: streaming, unelte, scoring/TCO, guardrails, evaluare               | planificată |
 | 6    | Integrarea frontend-ului, ștergerea codului server vechi (AI SDK, Auth.js, `/api/*`)       | planificată |
 | 7    | Redesign și componente specifice (card vehicul, comparație, TCO, panou lateral)            | planificată |
@@ -71,7 +71,7 @@ Detaliile (diagrame, evenimente SSE, straturi) sunt în `plan.md` §2; backend-u
 - **Date și confidențialitate:** fără cont și fără date personale; token de sesiune stocat doar hash-uit; endpoint de „șterge-mi datele”; jurnalele nu conțin date personale.
 - **Cost:** limită de rată pe sesiune și IP, buget zilnic de tokeni cu întrerupător global, lungime maximă a promptului, `max_output_tokens`.
 - **Corectitudine:** prețurile, specificațiile și costurile vin doar din unelte deterministe; răspunsurile le marchează ca orientative, cu data „date la”.
-- **Disponibilitate:** planul gratuit adoarme; interfața afișează „Se trezește consilierul…” în loc de eroare.
+- **Disponibilitate:** planul gratuit adoarme (Render după 15 minute fără trafic, ~1 minut pentru trezire + pornirea JVM; Neon după 5 minute, trezire în sute de ms); interfața pornește un ping la `/actuator/health` la încărcare și afișează „Se trezește consilierul…” în loc de eroare, reîncercând timp de ~2,5 minute. `/actuator/health` nu interoghează baza, ca să nu țină Neon treaz și să nu consume cota gratuită. Durata reală a cold start-ului este documentată în [`render/README.md`](render/README.md).
 - **Calitate:** build și teste verzi în CI pentru ambele servicii; formatare Prettier (frontend); straturile backend-ului verificate cu ArchUnit.
 - **Accesibilitate:** responsive de la 360 px, navigare cu tastatura, Lighthouse accessibility ≥ 90.
 

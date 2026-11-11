@@ -1,0 +1,39 @@
+# Blueprint Render pentru backend (infrastructura ca cod). Descrie DOAR forma serviciului; nicio valoare secreta nu
+# apare aici: variabilele cu `sync: false` sunt cerute o singura data, in dashboard, la crearea Blueprint-ului, si nu
+# sunt rescrise la sincronizarile urmatoare. Pasii: docs/render/README.md.
+services:
+  - type: web
+    name: cpa-backend
+    runtime: docker
+    # Planul gratuit adoarme dupa 15 minute fara trafic (cold start ~1 minut + pornirea JVM). Vezi ADR 0004.
+    plan: free
+    # Frankfurt: aproape de utilizatorii din Romania/UE; regiunea Neon trebuie sa fie tot in Europa (latenta JDBC).
+    region: frankfurt
+    # Doar modificarile din backend/ declanseaza un deploy; calea Dockerfile-ului si contextul sunt relative la rootDir.
+    rootDir: backend
+    dockerfilePath: ./Dockerfile
+    dockerContext: .
+    # Fara interogare de baza de date, ca health check-ul sa nu tina Neon treaz (vezi application-prod.yml).
+    healthCheckPath: /actuator/health
+    autoDeployTrigger: commit
+    envVars:
+      # Activeaza application-prod.yml: baza din mediu, Swagger oprit, pool reglat pentru Neon.
+      - key: SPRING_PROFILES_ACTIVE
+        value: prod
+      # Baza de date Neon (format JDBC: jdbc:postgresql://<host>/<baza>?sslmode=require); utilizator si parola separate.
+      - key: SPRING_DATASOURCE_URL
+        sync: false
+      - key: SPRING_DATASOURCE_USERNAME
+        sync: false
+      - key: SPRING_DATASOURCE_PASSWORD
+        sync: false
+      # Originile browserului permise, separate prin virgula, fara `*`: URL-ul Vercel de productie (+ un alias stabil).
+      - key: CORS_ALLOWED_ORIGINS
+        sync: false
+      # Substituent pana in Faza 5: fara cheie reala consilierul raspunde 503, dar aplicatia porneste. Cheia reala se
+      # pune DOAR aici, in dashboard, in Faza 9 — niciodata in repo.
+      - key: OPENAI_API_KEY
+        sync: false
+      # Singurul model (ADR 0007). Se completeaza in dashboard; valoarea finala se confirma inainte de Faza 5.
+      - key: CPA_LLM_MODEL
+        sync: false

@@ -26,6 +26,8 @@ COPY --from=build /workspace/target/extracted/application/ ./
 USER cpa
 EXPOSE 8080
 
-# Heap mic si GC serial: planul gratuit are putina memorie, iar un singur nucleu nu castiga nimic de la GC paralel.
-# `$PORT` este setat de unele gazde (Render); implicit 8080.
-ENTRYPOINT ["sh", "-c", "exec java -XX:MaxRAMPercentage=75 -XX:+UseSerialGC -Dserver.port=${PORT:-8080} -jar cpa-backend-0.0.1-SNAPSHOT.jar"]
+# Heap mic si GC serial: planul gratuit are putina memorie (512 MB), iar 0,1 nucleu nu castiga nimic de la GC paralel.
+# 60%, nu 75%: pe langa heap, JVM-ul are nevoie de metaspace, stive de thread-uri si memorie nativa; la 75% din 512 MB
+# procesul ar depasi limita containerului si ar fi omorat (OOM) fara nicio eroare Java.
+# `$PORT` este setat de unele gazde (Render, implicit 10000); implicit 8080.
+ENTRYPOINT ["sh", "-c", "exec java -XX:MaxRAMPercentage=60 -XX:+UseSerialGC -Dserver.port=${PORT:-8080} -jar cpa-backend-0.0.1-SNAPSHOT.jar"]

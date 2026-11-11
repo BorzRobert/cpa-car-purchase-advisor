@@ -440,7 +440,7 @@ flowchart TD
 
 - Spring Boot / Spring AI / Java 25 compatibility: pick the newest Spring Boot line that the current Spring AI release officially supports; pin both versions in the `pom.xml`.
 - OpenAI model id for D7 against the OpenAI model list and its current pricing; record the date in `docs/openai/README.md`.
-- Render supports the chosen Temurin 25 base image; Neon free-tier limits (storage, auto-suspend).
+- Render supports the chosen Temurin 25 base image; Neon free-tier limits (storage, auto-suspend). **Verified 2026-11-11 (Phase 3):** Render builds multi-stage Dockerfiles from public images, injects `PORT` (default 10000, which `backend/Dockerfile` honors), Free = 0.1 CPU / 512 MB, spins down after 15 min; Neon Free = 1 GB/project, 100 CU-hours/project, scale-to-zero after 5 min (fixed), wake-up in a few hundred ms. Details and sources in `docs/render/README.md` and `docs/neon/README.md`; the first real Render build is the final confirmation.
 
 ### 12.3 First actions, in order
 

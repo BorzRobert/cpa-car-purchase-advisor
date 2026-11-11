@@ -2,9 +2,9 @@
 
 Consilier personal pentru cumpărarea unei mașini. Un **agent AI** află nevoile cumpărătorului, caută și compară mașini dintr-un catalog propriu, calculează costul total de deținere și explică de ce recomandă ce recomandă. Prețurile și cifrele vin din unelte deterministe din backend, nu din memoria modelului.
 
-**Stadiul actual:** Faza 2 — backend-ul Java (Spring Boot) există în `backend/`, ca schelet (status, erori, CORS, OpenAPI, Docker, CI); domeniul, persistența și consilierul vin în fazele următoare. Planul complet este în [docs/plan.md](docs/plan.md), iar cerințele în [docs/requirements.md](docs/requirements.md).
+**Stadiul actual:** Faza 3 — „walking skeleton": backend-ul Java (`backend/`) este publicat pe Render cu PostgreSQL pe Neon, iar frontend-ul de pe Vercel afișează starea lui (cu tratarea cold start-ului). Domeniul, persistența și consilierul vin în fazele următoare. Planul complet este în [docs/plan.md](docs/plan.md), iar cerințele în [docs/requirements.md](docs/requirements.md).
 
-**Aplicația publicată:** se completează după Faza 3 (deploy).
+**Aplicația publicată:** URL-urile se completează după primul deploy (Faza 3); pașii sunt în [docs/render/README.md](docs/render/README.md), [docs/neon/README.md](docs/neon/README.md) și [docs/vercel/README.md](docs/vercel/README.md).
 
 ## Structura repo-ului
 
@@ -34,7 +34,7 @@ npm run dev   # http://localhost:3000
 | `npm run format`         | formatează tot proiectul cu Prettier                      |
 | `npm run format:check`   | verifică formatarea fără să modifice (varianta pentru CI) |
 
-Variabilele de mediu ale frontend-ului sunt în `frontend/.env.example`; valorile reale merg în `frontend/.env.local` (gitignorat).
+Variabilele de mediu ale frontend-ului sunt în `frontend/.env.example`; valorile reale merg în `frontend/.env.local` (gitignorat). Pentru a vedea starea backend-ului în UI, pornește backend-ul (mai jos) și pune `NEXT_PUBLIC_API_BASE_URL="http://localhost:8080"` în `frontend/.env.local`.
 
 Backend (JDK 25 — Temurin — cu `JAVA_HOME` setat pe el; Maven Wrapper, fără Maven global):
 

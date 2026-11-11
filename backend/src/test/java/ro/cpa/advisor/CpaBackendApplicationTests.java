@@ -1,5 +1,6 @@
 package ro.cpa.advisor;
 
+import static org.assertj.core.api.Assertions.assertThat;
 import static org.hamcrest.Matchers.hasKey;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
@@ -9,6 +10,7 @@ import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.boot.webmvc.test.autoconfigure.AutoConfigureMockMvc;
+import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.test.web.servlet.MockMvc;
 
 /**
@@ -21,6 +23,18 @@ class CpaBackendApplicationTests {
 
     @Autowired
     MockMvc mockMvc;
+
+    @Autowired
+    JdbcTemplate jdbcTemplate;
+
+    @Test
+    void flywayAppliesTheBaselineMigrationOnBoot() {
+        // Ghilimele peste tot: Flyway creeaza pe H2 coloane cu litere mici, iar H2 pune implicit nume in majuscule.
+        Integer applied = jdbcTemplate.queryForObject(
+                "select count(*) from \"flyway_schema_history\" where \"success\" = true and \"version\" = '1'",
+                Integer.class);
+        assertThat(applied).isEqualTo(1);
+    }
 
     @Test
     void bootsWithoutApiKeyAndReportsAdvisorNotConfigured() throws Exception {

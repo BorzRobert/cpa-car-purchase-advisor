@@ -51,6 +51,7 @@ import { useAppStore, useStoreHydration } from "@/store/useAppStore";
 import type { Conversation } from "@/lib/types";
 import { AuthConfiguredOnly, AuthNotConfiguredOnly } from "@/components/auth/auth-provider";
 import { AuthSidebarUser } from "@/components/auth/auth-controls";
+import { BackendStatus } from "@/components/layout/backend-status";
 
 export function AppSidebar() {
   const hydrated = useStoreHydration();
@@ -203,6 +204,8 @@ export function AppSidebar() {
         </SidebarContent>
 
         <SidebarFooter>
+          {/* Starea backend-ului deasupra rândului de utilizator: informație de fundal, nu o acțiune. */}
+          <BackendStatus />
           {/*
             Rândul de utilizator = intrarea în preferințe.
             DE CE aici și nu un buton „Setări" în header: e locul unde toată lumea caută

@@ -1,0 +1,48 @@
+# Valorile de productie (Render + Neon), activate cu SPRING_PROFILES_ACTIVE=prod. Stau intr-un profil separat ca
+# alegerile specifice gazdei sa nu se amestece cu dezvoltarea locala; secretele vin tot din mediu, nu de aici.
+spring:
+  datasource:
+    # Fara valoare implicita, intentionat: daca lipseste, aplicatia nu porneste. Un default H2 in memorie ar urca
+    # "cu succes", dar ar pierde toate datele la fiecare repornire a planului gratuit si nimeni nu ar observa.
+    url: ${SPRING_DATASOURCE_URL}
+    hikari:
+      # Neon gratuit adoarme dupa 5 minute si inchide conexiunile. O conexiune mai veche decat max-lifetime nu
+      # mai este refolosita, iar Hikari verifica o conexiune inactiva inainte sa o dea (isValid), deci prima cerere
+      # dupa somn primeste o conexiune noua in loc de una moarta.
+      max-lifetime: 240000
+      idle-timeout: 60000
+      minimum-idle: 0
+      # Mica pe intentie: planul gratuit Render are 512 MB, iar Neon accepta putine conexiuni simultane.
+      maximum-pool-size: 5
+      # Trezirea computului Neon dureaza de la cateva sute de ms la cateva secunde; asteptam, nu esuam.
+      connection-timeout: 30000
+      validation-timeout: 5000
+      # Implicit Hikari renunta la prima incercare esuata de la pornire. Cu un Neon adormit, boot-ul trebuie sa
+      # astepte trezirea, nu sa cada.
+      initialization-fail-timeout: 60000
+      # Fara keepalive-time, intentionat: ar tine computul Neon treaz non-stop si ar consuma cota gratuita.
+  flyway:
+    connect-retries: 5
+    connect-retries-interval: 3s
+
+cpa:
+  cors:
+    # Fara `localhost` implicit in productie: lista exacta (URL-ul Vercel de productie + eventual un alias stabil
+    # de preview) se seteaza in dashboard-ul Render. Vezi docs/vercel/README.md, sectiunea CORS.
+    allowed-origins: ${CORS_ALLOWED_ORIGINS}
+
+management:
+  health:
+    db:
+      # /actuator/health este si health check-ul Render (la cateva secunde) si "ping-ul de trezire" al frontend-ului.
+      # Daca ar interoga baza, ar tine Neon treaz non-stop si ar consuma cele 100 CU-ore gratuite pe luna.
+      # Disponibilitatea bazei de date va avea un grup de readiness separat, cand apare persistenta (Faza 4).
+      enabled: false
+
+springdoc:
+  # Swagger UI si /v3/api-docs sunt unelte de dezvoltare: in productie ar expune public lista endpoint-urilor
+  # interne. CI si dezvoltarea locala le au activate; documentul OpenAPI se obtine de acolo, nu din productie.
+  api-docs:
+    enabled: false
+  swagger-ui:
+    enabled: false

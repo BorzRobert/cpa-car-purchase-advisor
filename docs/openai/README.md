@@ -30,7 +30,7 @@ OPENAI_API_KEY=your_openai_api_key
 CPA_LLM_MODEL=gpt-5-mini
 ```
 
-`your_openai_api_key` este un substituent: backend-ul îl tratează ca „fără cheie”. În producție se configurează aceleași variabile în dashboard-ul gazdei backend-ului (Render, Faza 3).
+`your_openai_api_key` este un substituent: backend-ul îl tratează ca „fără cheie”. În producție se configurează aceleași variabile în dashboard-ul Render ([`../render/README.md`](../render/README.md)); până în Faza 5/9 `OPENAI_API_KEY` rămâne substituentul, nu o cheie reală.
 
 ## Pași manuali
 
