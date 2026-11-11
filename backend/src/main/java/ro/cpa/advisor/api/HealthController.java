@@ -1,6 +1,7 @@
 package ro.cpa.advisor.api;
 
 import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.security.SecurityRequirements;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
@@ -12,7 +13,7 @@ import ro.cpa.advisor.service.StatusService;
  * raspunde si daca consilierul e configurat (Faza 3 il foloseste ca dovada CORS + HTTPS cap-coada).
  */
 @RestController
-@RequestMapping("/api/v1")
+@RequestMapping(value = "/api/v1", produces = "application/json")
 @Tag(name = "Status")
 public class HealthController {
 
@@ -23,6 +24,7 @@ public class HealthController {
     }
 
     @GetMapping("/health")
+    @SecurityRequirements
     @Operation(summary = "Service status", description = "Reports that the backend is up and whether the advisor is configured.")
     public HealthResponse health() {
         StatusService.ServiceStatus status = statusService.currentStatus();

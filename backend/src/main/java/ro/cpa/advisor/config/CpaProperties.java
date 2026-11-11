@@ -4,6 +4,8 @@ import jakarta.validation.Valid;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotEmpty;
 import jakarta.validation.constraints.NotNull;
+import jakarta.validation.constraints.Positive;
+import jakarta.validation.constraints.PositiveOrZero;
 import java.util.List;
 import org.springframework.boot.context.properties.ConfigurationProperties;
 import org.springframework.validation.annotation.Validated;
@@ -14,10 +16,25 @@ import org.springframework.validation.annotation.Validated;
  */
 @Validated
 @ConfigurationProperties("cpa")
-public record CpaProperties(@NotNull @Valid Llm llm, @NotNull @Valid Cors cors) {
+public record CpaProperties(@NotNull @Valid Llm llm, @NotNull @Valid Cors cors, @NotNull @Valid Limits limits) {
 
     /** Modelul OpenAI folosit de consilier: o singura valoare, fara selector (ADR 0007). */
     public record Llm(@NotBlank String model) {}
+
+    /**
+     * Protectia unui endpoint public: limite de rata (in memorie, per instanta), de volum per sesiune si bugetul zilnic
+     * de tokeni. Valorile implicite sunt in `application.yml`; testele le coboara ca sa fie usor de atins.
+     */
+    public record Limits(
+            @Positive int requestsPerMinutePerSession,
+            @Positive int requestsPerMinutePerIp,
+            @Positive int sessionsPerHourPerIp,
+            @Positive int maxConversationsPerSession,
+            @Positive int maxMessagesPerConversation,
+            @Positive int maxShortlistItems,
+            @Positive long dailyTokenBudgetPerSession,
+            @Positive long dailyTokenBudgetGlobal,
+            @PositiveOrZero int trustedProxyHops) {}
 
     /** Originile browserului care au voie sa apeleze API-ul (frontend-ul pe Vercel, localhost in dezvoltare). */
     public record Cors(@NotEmpty List<String> allowedOrigins) {

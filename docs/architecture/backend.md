@@ -1,6 +1,6 @@
-# Backend — arhitectură (stadiul Fazei 3)
+# Backend — arhitectură (stadiul Fazei 4)
 
-Serviciul din `backend/`: Java 25, Spring Boot, Maven Wrapper. Deține toată logica de produs; frontend-ul doar afișează. În Faza 3 scheletul este publicat (Render + Neon) și are o migrare Flyway de bază goală — fără domeniu și fără apeluri către model încă.
+Serviciul din `backend/`: Java 25, Spring Boot, Maven Wrapper. Deține toată logica de produs; frontend-ul doar afișează. În Faza 4 are domeniul, persistența (Flyway + JPA), catalogul de pornire, API-ul REST descris în [`communication.md`](communication.md), identitatea prin token de sesiune anonim, limitele de rată și contabilitatea bugetului zilnic. Încă nu apelează modelul (Faza 5).
 
 ## Versiuni fixate (verificate la 2026-11-11)
 
@@ -26,14 +26,14 @@ Versiunile sunt în `backend/pom.xml` (părintele Boot și proprietățile `spri
 
 Pachetul de bază este `ro.cpa.advisor` (D9):
 
-| Pachet       | Rol (neschimbat în Faza 3)                                                                              |
-| ------------ | ------------------------------------------------------------------------------------------------------- |
-| `api`        | `HealthController` (`GET /api/v1/health`), `HealthResponse`, `ApiExceptionHandler` (`ProblemDetail`).    |
-| `service`    | `StatusService` — singurul care vorbește cu `ai` pentru endpoint-ul de status.                           |
-| `domain`     | `AdvisorNotConfiguredException`; nu depinde de nimic în afară de `java.*`.                               |
-| `repository` | gol, rezervat pentru Faza 4.                                                                             |
-| `ai`         | `AdvisorAvailability` — spune dacă există o cheie OpenAI utilizabilă; valoarea cheii nu iese de aici.    |
-| `config`     | `CpaProperties`, `SecurityConfig` (securitate + CORS), `RequestIdFilter`, `OpenApiConfig`.               |
+| Pachet       | Rol                                                                                                                                                                                  |
+| ------------ | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| `api`        | Controllere (`SessionController`, `ProfileController`, `ConversationController`, `MessageController`, `ShortlistController`, `VehicleController`, `UsageController`, `HealthController`), DTO-urile de cerere (record-uri cu Bean Validation, imbricate în controller) și `ApiExceptionHandler` (`ProblemDetail`). Răspunsurile sunt record-urile din `domain`. |
+| `service`    | Cazurile de utilizare: `SessionService`, `ProfileService`, `ConversationService`, `MessageService`, `ShortlistService`, `VehicleService`, `UsageService` (consum + buget), `RateLimitService`, `StatusService`. Tranzacțiile (`@Transactional`) stau aici; maparea entitate → domeniu se face aici. |
+| `domain`     | Record-uri și enum-uri imuabile (`BuyerProfile`, `Vehicle`, `Message`…), regulile pure (`TextRules` — curățarea textului, `SessionToken` — generare și hash, `VehicleFilter`) și excepțiile de domeniu. Nu depinde de nimic în afară de `java.*`. |
+| `repository` | Entitățile JPA (`*Entity`), repository-urile Spring Data și convertoarele de coloană. Entitățile **nu** ies din acest strat și din `service`: controllerele nu le văd. Cum domeniul nu poate depinde de `jakarta.persistence`, entitățile sunt separate de record-urile de domeniu (`toDomain()`). |
+| `ai`         | `AdvisorAvailability` — spune dacă există o cheie OpenAI utilizabilă; valoarea cheii nu iese de aici. Restul (prompt, unelte) vine în Faza 5.                                       |
+| `config`     | `CpaProperties`, `SecurityConfig` (lanțul de securitate + CORS), `SessionAuthenticationFilter`, `RateLimitFilter`, `ClientIpResolver`, `RequestIdFilter`, `OpenApiConfig`, `ClockConfig`. |
 
 Regulile `api → service → repository`, `service → domain`, `ai` folosit doar de `service`, `domain` fără dependențe, controllere fără acces la repository sau Spring AI sunt verificate de `ArchitectureTest` (ArchUnit) la fiecare `./mvnw verify`.
 
@@ -47,15 +47,33 @@ Regulile `api → service → repository`, `service → domain`, `ai` folosit do
 | `CPA_LLM_MODEL` → `cpa.llm.model`                    | `gpt-5-mini`              | Singurul model folosit (ADR 0007).                                                   |
 | `CORS_ALLOWED_ORIGINS` → `cpa.cors.allowed-origins`  | `http://localhost:3000` (în `prod`: fără implicit) | Origini separate prin virgulă; `*` este refuzat la pornire.                 |
 | `SPRING_PROFILES_ACTIVE`                             | niciunul (dezvoltare)     | `prod` pe Render: activează `application-prod.yml` (vezi mai jos).                   |
+| `CPA_TRUSTED_PROXY_HOPS` → `cpa.limits.trusted-proxy-hops` | `0` local, `1` în `prod` | Câte proxy-uri de încredere sunt între internet și aplicație, pentru adresa IP din limitele de rată (vezi „Limite de rată și buget”). |
+| `cpa.limits.*` (în `application.yml`)                | vezi „Limite de rată și buget” | Limite de rată, de volum și buget zilnic de tokeni; se schimbă în fișier, nu din mediu. |
 | `SPRING_DATASOURCE_URL` / `_USERNAME` / `_PASSWORD`  | H2 în memorie (mod PostgreSQL); în `prod` URL-ul e obligatoriu | Baza de date; în producție Neon (URL JDBC, vezi [`../neon/README.md`](../neon/README.md)). |
 
 Alte setări: `spring.threads.virtual.enabled=true` (thread-uri virtuale), `spring.jpa.open-in-view=false`, Actuator expune doar `health`.
 
 ### Baza de date și Flyway
 
-- Flyway rulează la pornire pe orice bază configurată; migrările sunt în `backend/src/main/resources/db/migration/` (`V<număr>__<descriere>.sql`). Acum există doar `V1__baseline.sql`, **goală intenționat** — dovedește că Flyway rulează și că `flyway_schema_history` se creează; schema reală vine în Faza 4. Regula: aceeași migrare trebuie să treacă pe H2 (mod PostgreSQL) și pe PostgreSQL, deci SQL standard.
-- Dovada: `CpaBackendApplicationTests.flywayAppliesTheBaselineMigrationOnBoot` (H2) și o rulare pe PostgreSQL 17 într-un container (2026-11-11): `1 | baseline | t`. Testcontainers în CI vine cu persistența (Faza 4).
-- `ddl-auto: validate`: Hibernate nu creează tabele; doar schema din migrări există.
+- Flyway rulează la pornire pe orice bază configurată; migrările sunt în `backend/src/main/resources/db/migration/` (`V<număr>__<descriere>.sql`). Regula: aceeași migrare trebuie să treacă pe H2 (mod PostgreSQL) și pe PostgreSQL, deci SQL standard. O migrare deja aplicată (pe Neon) **nu se editează niciodată**; se adaugă una nouă.
+  - `V1__baseline.sql` — goală, intenționat (Faza 3: dovedește că Flyway rulează).
+  - `V2__domain_schema.sql` — tabelele din plan §2.2.
+  - `V3__seed_catalogue.sql` — catalogul de pornire: 14 modele, 21 de variante.
+- Alegeri de schemă făcute ca să meargă pe ambele motoare: id-urile datelor unui vizitator sunt `uuid` generat de aplicație (fără secvențe/identity); textul liber este `varchar(n)`, nu `text` (pe H2 `text` devine CLOB și Hibernate îl respinge la validare); JSON-ul din `message.metadata` este text simplu, nu `jsonb`; enum-urile se salvează ca text, cu constrângeri `check`; listele scurte (tipuri de caroserie, motorizări, condiții) sunt text separat prin virgulă / `\n`, printr-un `AttributeConverter`, nu tabele de legătură.
+- Stergerea în cascadă: `visitor_session` → `buyer_profile`, `conversation` → `message`, `shortlist_item` (`on delete cascade`). `usage_log.session_id` este `on delete set null`: „șterge-mi datele” nu trebuie să reseteze bugetul global zilnic.
+- **Catalogul** este curatat de mână și **neverificat** față de listele de preț ale dealerilor: cifrele sunt rotunjite și orientative (`data_as_of` = 2026-11-11, afișat în UI ca „date la”). `euro_ncap_stars` este `NULL` când nu există o sursă sigură. Trebuie revizuit și extins înainte de producție (Faza 9); `plan.md` prevede ~100–200 de variante.
+- `ddl-auto: validate`: Hibernate nu creează tabele; orice nepotrivire dintre entități și schemă oprește pornirea (și pică testele de repository).
+- Dovada: `RepositoryH2Test` și `RepositoryPostgresTest` rulează **aceleași** verificări (`RepositoryContract`) pe H2 și pe PostgreSQL 17 (Testcontainers), deci migrările și maparea JPA sunt verificate pe ambele motoare la fiecare `./mvnw verify`.
+
+### Limite de rată și buget
+
+Configurate în `cpa.limits.*` (`application.yml`; valorile implicite sunt în [`communication.md`](communication.md#limite-și-buget)):
+
+- **Rata** (Bucket4j, în memorie, **per instanță**): per sesiune, per IP și sesiuni noi per IP. Planul Free rulează o singură instanță, deci nu e nevoie de stare comună; la scalare orizontală ar trebui mutată într-un depozit comun. Galețile stau într-un cache Caffeine cu expirare (cheile vin de la client, deci harta nu are voie să crească nemărginit).
+- **IP-ul clientului:** în `prod`, `trusted-proxy-hops: 1` — se ia ultima intrare din `X-Forwarded-For` (adăugată de proxy-ul Render); intrările din stânga le scrie clientul și sunt ignorate. **Presupunerea că Render adaugă exact o intrare nu este încă verificată pe instanța reală** — de verificat în Faza 9 (altfel limitele per IP ar fi comune tuturor, sau ocolibile). `CPA_TRUSTED_PROXY_HOPS` o poate corecta fără cod.
+- **Volum** per sesiune (conversații, mesaje, lista scurtă): verificat în servicii, cu `409 limit-reached`. Verificarea nu este atomică: două cereri simultane pot depăși o limită cu 1–2 elemente; este acceptabil (limita e un plafon de abuz, nu o regulă de facturare).
+- **Buget zilnic de tokeni** (ziua UTC): `UsageService.assertWithinBudget` rulează **înainte** de orice muncă costisitoare, pe sesiune și global; `record` îl alimentează după fiecare răspuns al modelului (Faza 5 îl apelează; în Faza 4 doar testele îl apelează, deci în producție consumul rămâne 0). „Întrerupătorul global” este chiar bugetul global.
+- Filtrele (`SessionAuthenticationFilter`, `RateLimitFilter`) sunt create în lanțul de securitate, nu sunt bean-uri, ca Boot să nu le înregistreze a doua oară ca filtre servlet. Erorile lor (401/403/429) trec prin același `ApiExceptionHandler`, deci au forma `ProblemDetail`.
 
 ### Profilul `prod` (`application-prod.yml`)
 
@@ -69,29 +87,40 @@ Activat pe Render prin `SPRING_PROFILES_ACTIVE=prod`. Alegerile specifice gazdei
 | Hikari `initialization-fail-timeout: 60000`                     | La pornire așteptăm până la 60 s trezirea bazei, în loc să cădem la prima încercare.                             |
 | Flyway `connect-retries: 5`, `connect-retries-interval: 3s`     | Reîncearcă conectarea la migrare dacă baza încă se trezește.                                                     |
 | Fără `keepalive-time` (intenționat)                             | Ar ține Neon treaz non-stop și ar consuma cele 100 CU-ore gratuite.                                              |
-| `management.health.db.enabled: false`                           | `/actuator/health` e apelat des (health check Render, ping-ul frontend-ului); nu trebuie să trezească Neon. Disponibilitatea bazei va avea un grup de readiness în Faza 4. |
+| `management.health.db.enabled: false`                           | `/actuator/health` e apelat des (health check Render, ping-ul frontend-ului); nu trebuie să trezească Neon. Disponibilitatea bazei nu are încă un grup de readiness separat (amânat de la Faza 4 la Faza 9). |
 | `springdoc.api-docs.enabled: false`, `springdoc.swagger-ui.enabled: false` | Swagger UI și `/v3/api-docs` nu sunt publice în producție (404). Rămân active local și în CI.            |
 
 Verificat la 2026-11-11 cu imaginea Docker a backend-ului pe un container PostgreSQL 17 (profil `prod`, `PORT=10000`, 512 MB): Flyway aplică `V1`, `/api/v1/health` răspunde, `/v3/api-docs` dă `404`, CORS acceptă doar originea configurată, iar pornirea cu baza oprită așteaptă și își revine când baza revine. `ProductionProfileTest` păzește partea fără bază reală (Swagger oprit, fără `dbHealthIndicator`).
 
 ## Securitate și erori
 
-- **Fără stare:** fără sesiune, cookie sau login; identitatea va fi un token anonim în `Authorization: Bearer` (filtru în Faza 4). Până atunci sunt publice doar `/api/v1/health`, `/actuator/health`, `/v3/api-docs` și `/swagger-ui`; orice altă cale primește `403`.
-- **CORS:** doar originile din listă, metodele `GET/POST/DELETE/OPTIONS`, headerele `Authorization`, `Content-Type`, `X-Request-Id`; fără credentials. Strategia pentru Vercel (Production exact, Preview doar prin aliasul stabil al branch-ului, fără wildcard) este în [`../vercel/README.md`](../vercel/README.md#cors-production-vs-preview).
+- **Fără stare:** fără sesiune de server, cookie sau login. Identitatea este tokenul anonim din `Authorization: Bearer` (hash-uit în baza de date, vezi [`communication.md`](communication.md#sesiune-și-autentificare)). Publice: `/api/v1/health`, `POST /api/v1/sessions`, `/actuator/health`, `/v3/api-docs`, `/swagger-ui`. Orice altceva din `/api/v1/**` cere token (`401`); orice cale din afara lor este refuzată.
+- **CORS:** doar originile din listă, metodele `GET/POST/PUT/PATCH/DELETE/OPTIONS`, headerele `Authorization`, `Content-Type`, `X-Request-Id`; expune `X-Request-Id` și `Retry-After`; fără credentials. Strategia pentru Vercel (Production exact, Preview doar prin aliasul stabil al branch-ului, fără wildcard) este în [`../vercel/README.md`](../vercel/README.md#cors-production-vs-preview).
 - **Id de cerere:** `RequestIdFilter` pune `X-Request-Id` în răspuns și în fiecare linie de log; un id primit de la client se acceptă doar dacă este inofensiv (`[A-Za-z0-9-]{8,64}`).
-- **Erori:** toate ies ca `ProblemDetail` (RFC 9457) cu proprietatea `requestId`. `AdvisorNotConfiguredException` → `503`, tip `urn:cpa:problem:advisor-not-configured`; orice excepție neprevăzută → `500` generic, fără detalii interne.
+- **Date din browser = date nefiduciare:** `TextRules` (în `domain`) curăță orice text liber la intrare (fără caractere de control sau invizibile, spații colapsate) și îl refuză, nu îl taie, dacă e prea lung; profilul și mesajele intră în prompt abia după asta (Faza 5 le delimitează ca date, nu instrucțiuni).
+- **Izolarea sesiunilor:** fiecare interogare de conversație/element include `session_id`; un id al altcuiva dă `404`, ca unul inexistent (`sessionsCannotSeeEachOthersData`).
+- **Erori:** toate ies ca `ProblemDetail` (RFC 9457) cu `requestId` și `code` stabil; catalogul complet este în [`communication.md`](communication.md#erori). Orice excepție neprevăzută → `500` generic, fără detalii interne.
 - **Swagger UI și `/v3/api-docs`** sunt deschise local și în CI, dar **oprite în producție** (profilul `prod`, `404`) — decis în Faza 3; se reconsideră în Faza 9 doar dacă există un motiv.
 
 ## Teste
 
-`./mvnw verify` (din `backend/`, cu JDK 25) rulează: teste unitare (`AdvisorAvailability`, `CpaProperties`, `RequestIdFilter`, `ApiExceptionHandler`), `@WebMvcTest` pentru endpoint-ul de status și CORS, pornirea completă a aplicației **fără** cheie OpenAI (H2 + Flyway cu migrarea de bază + Security + springdoc), pornirea cu profilul `prod` pe H2 (`ProductionProfileTest`) și testul ArchUnit de straturi. Testcontainers (Postgres) apare odată cu persistența, în Faza 4.
+`./mvnw verify` (din `backend/`, cu JDK 25; **Docker trebuie să ruleze**, pentru Testcontainers) rulează:
+
+- unitare: domeniu (`DomainRulesTest`), `ClientIpResolver`, `AdvisorAvailability`, `CpaProperties`, `RequestIdFilter`, `ApiExceptionHandler`;
+- repository, aceleași verificări pe H2 și pe PostgreSQL 17 real (`RepositoryH2Test`, `RepositoryPostgresTest`);
+- contract REST cap-coada pe H2 cu migrările reale (`ApiContractTest`: autentificare, profil, conversații, lista scurtă, catalog, izolarea sesiunilor, „șterge-mi datele”), limite (`RateLimitTest`) și buget (`DailyBudgetTest`);
+- `@WebMvcTest` pentru statusul public și CORS, pornirea completă **fără** cheie OpenAI, profilul `prod` pe H2;
+- `OpenApiSnapshotTest`: `docs/architecture/openapi.json` trebuie să fie identic cu documentul generat (regenerare: `./mvnw test -Dtest=OpenApiSnapshotTest -Dopenapi.update=true`);
+- `ArchitectureTest` (ArchUnit): straturile din plan §2.2.
+
+Fără Docker, doar `RepositoryPostgresTest` pică (zgomotos, intenționat): `./mvnw verify -Dtest='!RepositoryPostgresTest'` rulează restul.
 
 ## Docker și CI
 
-- `backend/Dockerfile`: build în două etape (`eclipse-temurin:25-jdk` → `eclipse-temurin:25-jre`), jar „layered”, utilizator fără drept de root, `-XX:MaxRAMPercentage=60 -XX:+UseSerialGC` (60% fiindcă planul Render Free are 512 MB), portul din `$PORT` (implicit 8080; Render injectează `10000`). Verificat la 2026-11-11: imaginea pornește fără cheie, cu `PORT=10000` și limită de 512 MB (~270 MiB folosiți), iar `GET /api/v1/health` răspunde.
-- `render.yaml` (rădăcina repo-ului): Blueprint-ul serviciului Render — Docker, `rootDir: backend`, plan `free`, regiunea `frankfurt`, health check `/actuator/health`, variabilele secrete declarate cu `sync: false`. Detalii: [`../render/README.md`](../render/README.md).
-- `.github/workflows/backend.yml`: `./mvnw verify` cu Temurin 25, apoi `docker build`; rulează doar când se schimbă `backend/`. `.github/workflows/frontend.yml` face același lucru pentru `frontend/` (`npm ci`, `lint`, `format:check`, `build`).
-- Compatibilitatea gazdei (verificată 2026-11-11 din documentația Render; confirmarea finală e primul deploy) și limitele Neon sunt în [`../render/README.md`](../render/README.md) și [`../neon/README.md`](../neon/README.md).
+- `backend/Dockerfile`: build în două etape (`eclipse-temurin:25-jdk` → `eclipse-temurin:25-jre`), jar „layered”, utilizator fără drept de root, `-XX:MaxRAMPercentage=60 -XX:+UseSerialGC` (60% fiindcă planul Render Free are 512 MB), portul din `$PORT` (implicit 8080; Render injectează `10000`). Imaginea se construiește cu `-DskipTests` (testele rulează în CI și local, nu în build-ul Docker).
+- `render.yaml` (rădăcina repo-ului): Blueprint-ul serviciului Render — Docker, `dockerfilePath: ./backend/Dockerfile`, `dockerContext: ./backend`, plan `free`, regiunea `frankfurt`, health check `/actuator/health`, variabilele secrete declarate cu `sync: false`. Detalii: [`../render/README.md`](../render/README.md).
+- `.github/workflows/backend.yml`: `./mvnw verify` cu Temurin 25 (runner-ul `ubuntu-latest` are Docker, deci rulează și Testcontainers; include verificarea instantaneului OpenAPI), apoi `docker build`; rulează când se schimbă `backend/`, `docs/architecture/openapi.json` sau workflow-ul. `.github/workflows/frontend.yml` face același lucru pentru `frontend/` (`npm ci`, `lint`, `format:check`, `build`).
+- Compatibilitatea gazdei și limitele Neon sunt în [`../render/README.md`](../render/README.md) și [`../neon/README.md`](../neon/README.md).
 
 ## Rulare locală
 

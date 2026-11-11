@@ -28,12 +28,12 @@ class CpaBackendApplicationTests {
     JdbcTemplate jdbcTemplate;
 
     @Test
-    void flywayAppliesTheBaselineMigrationOnBoot() {
+    void flywayAppliesAllMigrationsOnBoot() {
         // Ghilimele peste tot: Flyway creeaza pe H2 coloane cu litere mici, iar H2 pune implicit nume in majuscule.
         Integer applied = jdbcTemplate.queryForObject(
-                "select count(*) from \"flyway_schema_history\" where \"success\" = true and \"version\" = '1'",
+                "select count(*) from \"flyway_schema_history\" where \"success\" = true and \"version\" in ('1', '2', '3')",
                 Integer.class);
-        assertThat(applied).isEqualTo(1);
+        assertThat(applied).isEqualTo(3);
     }
 
     @Test
@@ -57,7 +57,14 @@ class CpaBackendApplicationTests {
     }
 
     @Test
-    void unlistedPathsAreDeniedByDefault() throws Exception {
-        mockMvc.perform(get("/api/v1/anything-else")).andExpect(status().isForbidden());
+    void unlistedApiPathsRequireASessionToken() throws Exception {
+        mockMvc.perform(get("/api/v1/anything-else"))
+                .andExpect(status().isUnauthorized())
+                .andExpect(jsonPath("$.code").value("unauthorized"));
+    }
+
+    @Test
+    void pathsOutsideTheApiAreDeniedByDefault() throws Exception {
+        mockMvc.perform(get("/anything-else")).andExpect(status().isUnauthorized());
     }
 }

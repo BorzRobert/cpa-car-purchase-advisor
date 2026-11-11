@@ -1,0 +1,974 @@
+{
+  "components" : {
+    "schemas" : {
+      "AddShortlistItemRequest" : {
+        "properties" : {
+          "note" : {
+            "maxLength" : 500,
+            "minLength" : 0,
+            "type" : "string"
+          },
+          "variantId" : {
+            "maxLength" : 80,
+            "minLength" : 0,
+            "type" : "string"
+          }
+        },
+        "required" : [ "variantId" ],
+        "type" : "object"
+      },
+      "BuyerProfile" : {
+        "properties" : {
+          "bodyTypes" : {
+            "items" : {
+              "enum" : [ "HATCHBACK", "SEDAN", "ESTATE", "SUV", "MPV" ],
+              "type" : "string"
+            },
+            "type" : "array"
+          },
+          "budgetAmount" : {
+            "type" : "number"
+          },
+          "budgetKind" : {
+            "enum" : [ "TOTAL", "MONTHLY" ],
+            "type" : "string"
+          },
+          "cityPercent" : {
+            "format" : "int32",
+            "type" : "integer"
+          },
+          "condition" : {
+            "enum" : [ "NEW", "USED", "ANY" ],
+            "type" : "string"
+          },
+          "dealBreakers" : {
+            "items" : {
+              "type" : "string"
+            },
+            "type" : "array"
+          },
+          "financingMode" : {
+            "enum" : [ "CASH", "FINANCE" ],
+            "type" : "string"
+          },
+          "homeCharging" : {
+            "type" : "boolean"
+          },
+          "mustHaves" : {
+            "items" : {
+              "type" : "string"
+            },
+            "type" : "array"
+          },
+          "passengers" : {
+            "format" : "int32",
+            "type" : "integer"
+          },
+          "powertrains" : {
+            "items" : {
+              "enum" : [ "PETROL", "DIESEL", "HYBRID", "PLUG_IN_HYBRID", "ELECTRIC" ],
+              "type" : "string"
+            },
+            "type" : "array"
+          },
+          "updatedAt" : {
+            "format" : "date-time",
+            "type" : "string"
+          },
+          "yearlyKm" : {
+            "format" : "int32",
+            "type" : "integer"
+          }
+        },
+        "type" : "object"
+      },
+      "Conversation" : {
+        "properties" : {
+          "createdAt" : {
+            "format" : "date-time",
+            "type" : "string"
+          },
+          "id" : {
+            "format" : "uuid",
+            "type" : "string"
+          },
+          "title" : {
+            "type" : "string"
+          },
+          "updatedAt" : {
+            "format" : "date-time",
+            "type" : "string"
+          }
+        },
+        "type" : "object"
+      },
+      "CreateConversationRequest" : {
+        "properties" : {
+          "title" : {
+            "maxLength" : 120,
+            "minLength" : 0,
+            "type" : "string"
+          }
+        },
+        "type" : "object"
+      },
+      "HealthResponse" : {
+        "properties" : {
+          "advisorConfigured" : {
+            "description" : "False when OPENAI_API_KEY is missing; the advisor endpoints then answer 503.",
+            "type" : "boolean"
+          },
+          "service" : {
+            "example" : "cpa-backend",
+            "type" : "string"
+          },
+          "status" : {
+            "example" : "UP",
+            "type" : "string"
+          },
+          "version" : {
+            "example" : "0.0.1-SNAPSHOT",
+            "type" : "string"
+          }
+        },
+        "type" : "object"
+      },
+      "IssuedSession" : {
+        "properties" : {
+          "createdAt" : {
+            "format" : "date-time",
+            "type" : "string"
+          },
+          "token" : {
+            "type" : "string"
+          }
+        },
+        "type" : "object"
+      },
+      "Message" : {
+        "properties" : {
+          "content" : {
+            "type" : "string"
+          },
+          "conversationId" : {
+            "format" : "uuid",
+            "type" : "string"
+          },
+          "createdAt" : {
+            "format" : "date-time",
+            "type" : "string"
+          },
+          "id" : {
+            "format" : "uuid",
+            "type" : "string"
+          },
+          "role" : {
+            "enum" : [ "USER", "ASSISTANT" ],
+            "type" : "string"
+          }
+        },
+        "type" : "object"
+      },
+      "PostMessageRequest" : {
+        "properties" : {
+          "content" : {
+            "maxLength" : 4000,
+            "minLength" : 0,
+            "type" : "string"
+          }
+        },
+        "required" : [ "content" ],
+        "type" : "object"
+      },
+      "ProfileRequest" : {
+        "properties" : {
+          "bodyTypes" : {
+            "items" : {
+              "enum" : [ "HATCHBACK", "SEDAN", "ESTATE", "SUV", "MPV" ],
+              "type" : "string"
+            },
+            "maxItems" : 5,
+            "minItems" : 0,
+            "type" : "array"
+          },
+          "budgetAmount" : {
+            "minimum" : 0,
+            "type" : "number"
+          },
+          "budgetKind" : {
+            "enum" : [ "TOTAL", "MONTHLY" ],
+            "type" : "string"
+          },
+          "cityPercent" : {
+            "format" : "int32",
+            "maximum" : 100,
+            "minimum" : 0,
+            "type" : "integer"
+          },
+          "condition" : {
+            "enum" : [ "NEW", "USED", "ANY" ],
+            "type" : "string"
+          },
+          "dealBreakers" : {
+            "items" : {
+              "maxLength" : 80,
+              "minLength" : 0,
+              "type" : "string"
+            },
+            "maxItems" : 10,
+            "minItems" : 0,
+            "type" : "array"
+          },
+          "financingMode" : {
+            "enum" : [ "CASH", "FINANCE" ],
+            "type" : "string"
+          },
+          "homeCharging" : {
+            "type" : "boolean"
+          },
+          "mustHaves" : {
+            "items" : {
+              "maxLength" : 80,
+              "minLength" : 0,
+              "type" : "string"
+            },
+            "maxItems" : 10,
+            "minItems" : 0,
+            "type" : "array"
+          },
+          "passengers" : {
+            "format" : "int32",
+            "maximum" : 9,
+            "minimum" : 1,
+            "type" : "integer"
+          },
+          "powertrains" : {
+            "items" : {
+              "enum" : [ "PETROL", "DIESEL", "HYBRID", "PLUG_IN_HYBRID", "ELECTRIC" ],
+              "type" : "string"
+            },
+            "maxItems" : 5,
+            "minItems" : 0,
+            "type" : "array"
+          },
+          "yearlyKm" : {
+            "format" : "int32",
+            "maximum" : 200000,
+            "minimum" : 0,
+            "type" : "integer"
+          }
+        },
+        "type" : "object"
+      },
+      "RenameConversationRequest" : {
+        "properties" : {
+          "title" : {
+            "maxLength" : 120,
+            "minLength" : 0,
+            "type" : "string"
+          }
+        },
+        "required" : [ "title" ],
+        "type" : "object"
+      },
+      "SessionInfo" : {
+        "properties" : {
+          "createdAt" : {
+            "format" : "date-time",
+            "type" : "string"
+          },
+          "lastSeenAt" : {
+            "format" : "date-time",
+            "type" : "string"
+          }
+        },
+        "type" : "object"
+      },
+      "ShortlistItem" : {
+        "properties" : {
+          "addedAt" : {
+            "format" : "date-time",
+            "type" : "string"
+          },
+          "id" : {
+            "format" : "uuid",
+            "type" : "string"
+          },
+          "note" : {
+            "type" : "string"
+          },
+          "vehicle" : {
+            "$ref" : "#/components/schemas/Vehicle"
+          }
+        },
+        "type" : "object"
+      },
+      "UsageSummary" : {
+        "properties" : {
+          "dailyTokenBudget" : {
+            "format" : "int64",
+            "type" : "integer"
+          },
+          "date" : {
+            "format" : "date",
+            "type" : "string"
+          },
+          "inputTokens" : {
+            "format" : "int64",
+            "type" : "integer"
+          },
+          "outputTokens" : {
+            "format" : "int64",
+            "type" : "integer"
+          },
+          "remainingTokens" : {
+            "format" : "int64",
+            "type" : "integer"
+          },
+          "resetsAt" : {
+            "format" : "date-time",
+            "type" : "string"
+          }
+        },
+        "type" : "object"
+      },
+      "Vehicle" : {
+        "properties" : {
+          "bodyType" : {
+            "enum" : [ "HATCHBACK", "SEDAN", "ESTATE", "SUV", "MPV" ],
+            "type" : "string"
+          },
+          "bootLitres" : {
+            "format" : "int32",
+            "type" : "integer"
+          },
+          "euroNcapStars" : {
+            "format" : "int32",
+            "type" : "integer"
+          },
+          "id" : {
+            "type" : "string"
+          },
+          "make" : {
+            "type" : "string"
+          },
+          "model" : {
+            "type" : "string"
+          },
+          "reliabilityNotes" : {
+            "type" : "string"
+          },
+          "seats" : {
+            "format" : "int32",
+            "type" : "integer"
+          },
+          "variants" : {
+            "items" : {
+              "$ref" : "#/components/schemas/VehicleVariant"
+            },
+            "type" : "array"
+          }
+        },
+        "type" : "object"
+      },
+      "VehicleCatalogue" : {
+        "properties" : {
+          "dataAsOf" : {
+            "format" : "date",
+            "type" : "string"
+          },
+          "vehicles" : {
+            "items" : {
+              "$ref" : "#/components/schemas/Vehicle"
+            },
+            "type" : "array"
+          }
+        },
+        "type" : "object"
+      },
+      "VehicleVariant" : {
+        "properties" : {
+          "annualInsuranceEur" : {
+            "format" : "int32",
+            "type" : "integer"
+          },
+          "annualMaintenanceEur" : {
+            "format" : "int32",
+            "type" : "integer"
+          },
+          "annualRoadTaxEur" : {
+            "format" : "int32",
+            "type" : "integer"
+          },
+          "batteryKwh" : {
+            "type" : "number"
+          },
+          "co2GramsPerKm" : {
+            "format" : "int32",
+            "type" : "integer"
+          },
+          "consumptionKwhPer100Km" : {
+            "type" : "number"
+          },
+          "consumptionLitersPer100Km" : {
+            "type" : "number"
+          },
+          "dataAsOf" : {
+            "format" : "date",
+            "type" : "string"
+          },
+          "electricRangeKm" : {
+            "format" : "int32",
+            "type" : "integer"
+          },
+          "id" : {
+            "type" : "string"
+          },
+          "name" : {
+            "type" : "string"
+          },
+          "powerKw" : {
+            "format" : "int32",
+            "type" : "integer"
+          },
+          "powertrain" : {
+            "enum" : [ "PETROL", "DIESEL", "HYBRID", "PLUG_IN_HYBRID", "ELECTRIC" ],
+            "type" : "string"
+          },
+          "priceEur" : {
+            "format" : "int32",
+            "type" : "integer"
+          },
+          "residualValuePercentAfter5Years" : {
+            "format" : "int32",
+            "type" : "integer"
+          }
+        },
+        "type" : "object"
+      }
+    },
+    "securitySchemes" : {
+      "bearerAuth" : {
+        "description" : "Token from POST /api/v1/sessions",
+        "scheme" : "bearer",
+        "type" : "http"
+      }
+    }
+  },
+  "info" : {
+    "description" : "REST API of the Car Purchase Advisor. All data comes from deterministic services; the advisor only explains it.",
+    "title" : "CPA Backend API",
+    "version" : "v1"
+  },
+  "openapi" : "3.1.0",
+  "paths" : {
+    "/api/v1/conversations" : {
+      "get" : {
+        "description" : "Most recently updated first. The number of conversations per session is capped.",
+        "operationId" : "list_1",
+        "responses" : {
+          "200" : {
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "items" : {
+                    "$ref" : "#/components/schemas/Conversation"
+                  },
+                  "type" : "array"
+                }
+              }
+            },
+            "description" : "OK"
+          }
+        },
+        "summary" : "List conversations",
+        "tags" : [ "Conversations" ]
+      },
+      "post" : {
+        "description" : "The title is optional; if empty it is derived from the first message.",
+        "operationId" : "create_1",
+        "requestBody" : {
+          "content" : {
+            "application/json" : {
+              "schema" : {
+                "$ref" : "#/components/schemas/CreateConversationRequest"
+              }
+            }
+          }
+        },
+        "responses" : {
+          "201" : {
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/Conversation"
+                }
+              }
+            },
+            "description" : "Created"
+          }
+        },
+        "summary" : "Create a conversation",
+        "tags" : [ "Conversations" ]
+      }
+    },
+    "/api/v1/conversations/{conversationId}/messages" : {
+      "get" : {
+        "description" : "Oldest first. The number of messages per conversation is capped.",
+        "operationId" : "list_2",
+        "parameters" : [ {
+          "in" : "path",
+          "name" : "conversationId",
+          "required" : true,
+          "schema" : {
+            "format" : "uuid",
+            "type" : "string"
+          }
+        } ],
+        "responses" : {
+          "200" : {
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "items" : {
+                    "$ref" : "#/components/schemas/Message"
+                  },
+                  "type" : "array"
+                }
+              }
+            },
+            "description" : "OK"
+          }
+        },
+        "summary" : "List messages",
+        "tags" : [ "Messages" ]
+      },
+      "post" : {
+        "description" : "Stores the message (no model call yet). Refused with 429 when the daily token budget is used up.",
+        "operationId" : "post",
+        "parameters" : [ {
+          "in" : "path",
+          "name" : "conversationId",
+          "required" : true,
+          "schema" : {
+            "format" : "uuid",
+            "type" : "string"
+          }
+        } ],
+        "requestBody" : {
+          "content" : {
+            "application/json" : {
+              "schema" : {
+                "$ref" : "#/components/schemas/PostMessageRequest"
+              }
+            }
+          },
+          "required" : true
+        },
+        "responses" : {
+          "201" : {
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/Message"
+                }
+              }
+            },
+            "description" : "Created"
+          }
+        },
+        "summary" : "Post a user message",
+        "tags" : [ "Messages" ]
+      }
+    },
+    "/api/v1/conversations/{id}" : {
+      "delete" : {
+        "operationId" : "delete",
+        "parameters" : [ {
+          "in" : "path",
+          "name" : "id",
+          "required" : true,
+          "schema" : {
+            "format" : "uuid",
+            "type" : "string"
+          }
+        } ],
+        "responses" : {
+          "204" : {
+            "description" : "No Content"
+          }
+        },
+        "summary" : "Delete a conversation with its messages",
+        "tags" : [ "Conversations" ]
+      },
+      "get" : {
+        "operationId" : "get_1",
+        "parameters" : [ {
+          "in" : "path",
+          "name" : "id",
+          "required" : true,
+          "schema" : {
+            "format" : "uuid",
+            "type" : "string"
+          }
+        } ],
+        "responses" : {
+          "200" : {
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/Conversation"
+                }
+              }
+            },
+            "description" : "OK"
+          }
+        },
+        "summary" : "Get a conversation",
+        "tags" : [ "Conversations" ]
+      },
+      "patch" : {
+        "operationId" : "rename",
+        "parameters" : [ {
+          "in" : "path",
+          "name" : "id",
+          "required" : true,
+          "schema" : {
+            "format" : "uuid",
+            "type" : "string"
+          }
+        } ],
+        "requestBody" : {
+          "content" : {
+            "application/json" : {
+              "schema" : {
+                "$ref" : "#/components/schemas/RenameConversationRequest"
+              }
+            }
+          },
+          "required" : true
+        },
+        "responses" : {
+          "200" : {
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/Conversation"
+                }
+              }
+            },
+            "description" : "OK"
+          }
+        },
+        "summary" : "Rename a conversation",
+        "tags" : [ "Conversations" ]
+      }
+    },
+    "/api/v1/health" : {
+      "get" : {
+        "description" : "Reports that the backend is up and whether the advisor is configured.",
+        "operationId" : "health",
+        "responses" : {
+          "200" : {
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/HealthResponse"
+                }
+              }
+            },
+            "description" : "OK"
+          }
+        },
+        "security" : [ ],
+        "summary" : "Service status",
+        "tags" : [ "Status" ]
+      }
+    },
+    "/api/v1/profile" : {
+      "delete" : {
+        "operationId" : "clear",
+        "responses" : {
+          "204" : {
+            "description" : "No Content"
+          }
+        },
+        "summary" : "Clear the buyer profile",
+        "tags" : [ "Profile" ]
+      },
+      "get" : {
+        "description" : "An empty profile (all fields null, `updatedAt` null) if nothing was saved yet.",
+        "operationId" : "get",
+        "responses" : {
+          "200" : {
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/BuyerProfile"
+                }
+              }
+            },
+            "description" : "OK"
+          }
+        },
+        "summary" : "Get the buyer profile",
+        "tags" : [ "Profile" ]
+      },
+      "put" : {
+        "description" : "Send the whole profile; fields left out are cleared.",
+        "operationId" : "replace",
+        "requestBody" : {
+          "content" : {
+            "application/json" : {
+              "schema" : {
+                "$ref" : "#/components/schemas/ProfileRequest"
+              }
+            }
+          },
+          "required" : true
+        },
+        "responses" : {
+          "200" : {
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/BuyerProfile"
+                }
+              }
+            },
+            "description" : "OK"
+          }
+        },
+        "summary" : "Replace the buyer profile",
+        "tags" : [ "Profile" ]
+      }
+    },
+    "/api/v1/sessions" : {
+      "post" : {
+        "description" : "Returns an opaque token, shown only once. Send it as `Authorization: Bearer <token>` on every other call.",
+        "operationId" : "create",
+        "responses" : {
+          "200" : {
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/IssuedSession"
+                }
+              }
+            },
+            "description" : "OK"
+          }
+        },
+        "security" : [ ],
+        "summary" : "Create an anonymous session",
+        "tags" : [ "Sessions" ]
+      }
+    },
+    "/api/v1/sessions/current" : {
+      "delete" : {
+        "description" : "Deletes the session with its profile, conversations and shortlist. The token stops working.",
+        "operationId" : "delete_1",
+        "responses" : {
+          "204" : {
+            "description" : "No Content"
+          }
+        },
+        "summary" : "Delete my data",
+        "tags" : [ "Sessions" ]
+      },
+      "get" : {
+        "description" : "Also serves to check that a stored token is still valid.",
+        "operationId" : "current",
+        "responses" : {
+          "200" : {
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/SessionInfo"
+                }
+              }
+            },
+            "description" : "OK"
+          }
+        },
+        "summary" : "Current session",
+        "tags" : [ "Sessions" ]
+      }
+    },
+    "/api/v1/shortlist" : {
+      "get" : {
+        "description" : "Newest first. Each item carries its vehicle with only the saved variant.",
+        "operationId" : "list",
+        "responses" : {
+          "200" : {
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "items" : {
+                    "$ref" : "#/components/schemas/ShortlistItem"
+                  },
+                  "type" : "array"
+                }
+              }
+            },
+            "description" : "OK"
+          }
+        },
+        "summary" : "List the shortlist",
+        "tags" : [ "Shortlist" ]
+      },
+      "post" : {
+        "description" : "404 for an unknown variant, 409 if already saved or the shortlist is full.",
+        "operationId" : "add",
+        "requestBody" : {
+          "content" : {
+            "application/json" : {
+              "schema" : {
+                "$ref" : "#/components/schemas/AddShortlistItemRequest"
+              }
+            }
+          },
+          "required" : true
+        },
+        "responses" : {
+          "201" : {
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ShortlistItem"
+                }
+              }
+            },
+            "description" : "Created"
+          }
+        },
+        "summary" : "Add a vehicle variant",
+        "tags" : [ "Shortlist" ]
+      }
+    },
+    "/api/v1/shortlist/{id}" : {
+      "delete" : {
+        "operationId" : "remove",
+        "parameters" : [ {
+          "in" : "path",
+          "name" : "id",
+          "required" : true,
+          "schema" : {
+            "format" : "uuid",
+            "type" : "string"
+          }
+        } ],
+        "responses" : {
+          "204" : {
+            "description" : "No Content"
+          }
+        },
+        "summary" : "Remove a shortlist item",
+        "tags" : [ "Shortlist" ]
+      }
+    },
+    "/api/v1/usage" : {
+      "get" : {
+        "description" : "Usage of this session for the current UTC day against the daily budget.",
+        "operationId" : "today",
+        "responses" : {
+          "200" : {
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/UsageSummary"
+                }
+              }
+            },
+            "description" : "OK"
+          }
+        },
+        "summary" : "Today's token usage",
+        "tags" : [ "Usage" ]
+      }
+    },
+    "/api/v1/vehicles" : {
+      "get" : {
+        "description" : "Filters are optional and combined with AND. Vehicles are ordered by make and model, variants by price. Prices are indicative; `dataAsOf` is the date the figures are valid for.",
+        "operationId" : "search",
+        "parameters" : [ {
+          "in" : "query",
+          "name" : "bodyType",
+          "required" : false,
+          "schema" : {
+            "enum" : [ "HATCHBACK", "SEDAN", "ESTATE", "SUV", "MPV" ],
+            "type" : "string"
+          }
+        }, {
+          "in" : "query",
+          "name" : "powertrain",
+          "required" : false,
+          "schema" : {
+            "enum" : [ "PETROL", "DIESEL", "HYBRID", "PLUG_IN_HYBRID", "ELECTRIC" ],
+            "type" : "string"
+          }
+        }, {
+          "in" : "query",
+          "name" : "maxPriceEur",
+          "required" : false,
+          "schema" : {
+            "format" : "int32",
+            "type" : "integer"
+          }
+        }, {
+          "in" : "query",
+          "name" : "minSeats",
+          "required" : false,
+          "schema" : {
+            "format" : "int32",
+            "type" : "integer"
+          }
+        } ],
+        "responses" : {
+          "200" : {
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/VehicleCatalogue"
+                }
+              }
+            },
+            "description" : "OK"
+          }
+        },
+        "summary" : "Search the catalogue",
+        "tags" : [ "Vehicles" ]
+      }
+    },
+    "/api/v1/vehicles/{id}" : {
+      "get" : {
+        "operationId" : "get_2",
+        "parameters" : [ {
+          "in" : "path",
+          "name" : "id",
+          "required" : true,
+          "schema" : {
+            "type" : "string"
+          }
+        } ],
+        "responses" : {
+          "200" : {
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/Vehicle"
+                }
+              }
+            },
+            "description" : "OK"
+          }
+        },
+        "summary" : "Get a vehicle with all its variants",
+        "tags" : [ "Vehicles" ]
+      }
+    }
+  },
+  "security" : [ {
+    "bearerAuth" : [ ]
+  } ]
+}

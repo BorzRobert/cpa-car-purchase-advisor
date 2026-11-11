@@ -5,9 +5,9 @@ name: backend
 on:
   push:
     branches: [main]
-    paths: ["backend/**", ".github/workflows/backend.yml"]
+    paths: ["backend/**", "docs/architecture/openapi.json", ".github/workflows/backend.yml"]
   pull_request:
-    paths: ["backend/**", ".github/workflows/backend.yml"]
+    paths: ["backend/**", "docs/architecture/openapi.json", ".github/workflows/backend.yml"]
 
 permissions:
   contents: read
@@ -28,7 +28,8 @@ jobs:
           cache: maven
           cache-dependency-path: backend/pom.xml
 
-      # Include testele unitare, @WebMvcTest, pornirea completa fara cheie OpenAI si testul ArchUnit de straturi.
+      # Include unitare, repository pe H2 si pe PostgreSQL real (Testcontainers; runner-ul are Docker), contractul REST,
+      # limitele, testul ArchUnit de straturi si verificarea ca docs/architecture/openapi.json nu e invechit.
       - run: ./mvnw -B -ntp verify
 
   docker:

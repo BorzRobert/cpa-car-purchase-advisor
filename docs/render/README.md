@@ -26,6 +26,7 @@ Toate se setează în **Render → serviciul `cpa-backend` → Environment**. Ni
 | `CORS_ALLOWED_ORIGINS`       | originile frontend-ului, separate prin virgulă, fără `*` — vezi [`../vercel/README.md`](../vercel/README.md) | `sync: false`      |
 | `OPENAI_API_KEY`             | **substituent** `your_openai_api_key` până în Faza 5/9; cheia reală se pune doar aici, în dashboard      | `sync: false`           |
 | `CPA_LLM_MODEL`              | `gpt-5-mini` deocamdată (ADR 0007) — **de reconfirmat înainte de Faza 5**, vezi [`../openai/README.md`](../openai/README.md) | `sync: false` |
+| `CPA_TRUSTED_PROXY_HOPS`     | opțională; implicit `1` în profilul `prod` (ultima intrare din `X-Forwarded-For`). Se setează doar dacă verificarea din Faza 9 arată altceva | nu apare |
 
 `PORT` nu se setează: Render îl injectează (implicit `10000`), iar `Dockerfile` îl citește (`-Dserver.port=${PORT:-8080}`). Verificat local cu `PORT=10000`.
 
@@ -73,11 +74,11 @@ Ce contează pentru CPA:
 
 ### Observat pe Render
 
-> Se completează după primul deploy real (Faza 3): data, durata primului build, durata cold start-ului măsurată (timp de la prima cerere până la `200` pe `/actuator/health` după ≥ 15 minute de inactivitate) și dacă `eclipse-temurin:25-jre` a rulat fără modificări.
+> Măsurătoare cerută de Faza 3: timpul de la prima cerere până la `200` pe `/actuator/health` după ≥ 15 minute fără trafic. **Încă nu există o valoare măsurată.** La 2026-11-11, trei cereri făcute la 17 și 20 de minute după ultima cerere proprie au primit `200` în ~0,25 s, adică serviciul era deja treaz: ceva din afara măsurătorii îl ține treaz (de exemplu un tab cu frontend-ul deschis, care face ping, sau un monitor de uptime). O astfel de cerere **nu** este un cold start și nu se trece în tabel. Pași pentru o măsurătoare validă: vezi mai jos „Verificare”.
 
 | Dată | Build (min) | Cold start (s) | Observații |
 | ---- | ----------- | -------------- | ---------- |
-| —    | —           | —              | —          |
+| —    | —           | —              | Netrecută: nu s-a putut obține un serviciu adormit. Imaginea `eclipse-temurin:25-jre` din `backend/Dockerfile` nu a fost modificată pentru Render, iar serviciul răspunde `200` (`version` `0.0.1-SNAPSHOT`); **jurnalul de build din Render nu a fost văzut**, deci confirmarea explicită rămâne de făcut |
 
 ## Verificare
 
@@ -96,7 +97,7 @@ curl -s -i -H "Origin: https://<origine-permisa>" <URL-backend>/api/v1/health | 
 curl -s -o /dev/null -w "%{http_code}\n" -H "Origin: https://exemplu-nepermis.invalid" <URL-backend>/api/v1/health
 ```
 
-Cold start: lasă serviciul 15+ minute fără trafic, apoi `time curl -s <URL-backend>/actuator/health` — prima cerere durează (pagina de trezire / ~1 minut + JVM), următoarele sunt rapide.
+Cold start: întâi te asiguri că nimic nu mai ține serviciul treaz (închide tab-urile cu frontend-ul, oprește orice monitor de uptime), apoi confirmi în Render → serviciul → **Events/Logs** că a apărut „Service spinning down due to inactivity" (sau starea e „Suspended/idle"). Abia atunci `time curl -s <URL-backend>/actuator/health` — prima cerere durează (pagina de trezire / ~1 minut + JVM), următoarele sunt rapide. O cerere rapidă (< 2 s) după o pauză înseamnă că serviciul nu dormea.
 
 Erori tipice:
 

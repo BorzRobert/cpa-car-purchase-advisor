@@ -15,6 +15,8 @@ import org.springframework.http.HttpHeaders;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.test.web.servlet.MockMvc;
 import ro.cpa.advisor.config.SecurityConfig;
+import ro.cpa.advisor.service.RateLimitService;
+import ro.cpa.advisor.service.SessionService;
 import ro.cpa.advisor.service.StatusService;
 
 /** Contractul HTTP al endpoint-ului de status, impreuna cu CORS-ul si filtrul de id al cererii care il inconjoara. */
@@ -27,6 +29,13 @@ class HealthControllerTest {
 
     @MockitoBean
     StatusService statusService;
+
+    // Lantul de securitate cere aceste servicii (autentificare si limite de rata); aici nu conteaza, deci sunt simulate.
+    @MockitoBean
+    SessionService sessionService;
+
+    @MockitoBean
+    RateLimitService rateLimitService;
 
     @Test
     void returnsStatusWithoutAnySecret() throws Exception {

@@ -33,6 +33,21 @@ cpa:
   cors:
     # Lista separata prin virgule; niciodata `*` (verificat la pornire).
     allowed-origins: ${CORS_ALLOWED_ORIGINS:http://localhost:3000}
+  limits:
+    # Protectia endpoint-ului public (limite per instanta, in memorie). Valorile sunt largi pentru un om care foloseste
+    # aplicatia normal si stranse pentru un script: abuzul real este oprit de bugetul zilnic de tokeni.
+    requests-per-minute-per-session: 60
+    requests-per-minute-per-ip: 120
+    sessions-per-hour-per-ip: 10
+    max-conversations-per-session: 50
+    max-messages-per-conversation: 200
+    max-shortlist-items: 20
+    # Bugete in tokeni (intrare + iesire) pe zi UTC; contabilizarea reala vine odata cu apelul catre model (Faza 5).
+    daily-token-budget-per-session: 60000
+    daily-token-budget-global: 1000000
+    # Cate proxy-uri de incredere sunt intre internet si aplicatie: 0 = adresa conexiunii (local);
+    # in `prod` se ia din X-Forwarded-For, de la dreapta (vezi application-prod.yml).
+    trusted-proxy-hops: 0
 
 management:
   endpoints:

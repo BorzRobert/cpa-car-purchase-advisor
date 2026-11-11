@@ -6,7 +6,9 @@
 
 [`plan.md`](plan.md) — planul de transformare și de execuție, pe faze (în engleză). [`adr/`](adr/) — câte o notă scurtă pentru fiecare decizie D1–D9.
 
-[`architecture/backend.md`](architecture/backend.md) — cum este construit backend-ul: versiuni fixate, straturi, configurare (inclusiv profilul `prod`), securitate, teste, Docker și CI.
+[`architecture/backend.md`](architecture/backend.md) — cum este construit backend-ul: versiuni fixate, straturi, configurare (inclusiv profilul `prod`), baza de date și migrări, limite, securitate, teste, Docker și CI.
+
+[`architecture/communication.md`](architecture/communication.md) — contractul frontend ↔ backend: sesiune, endpoint-uri, erori, limite, SSE (specificat). [`architecture/openapi.json`](architecture/openapi.json) — instantaneul OpenAPI, verificat în CI.
 
 Când se schimbă ceva pe drum, se actualizează în `requirements.md`, nu doar în conversație.
 

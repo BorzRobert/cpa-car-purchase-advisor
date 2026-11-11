@@ -34,6 +34,7 @@ class ApiExceptionHandlerTest {
                 .andExpect(status().isServiceUnavailable())
                 .andExpect(content().contentTypeCompatibleWith(MediaType.APPLICATION_PROBLEM_JSON))
                 .andExpect(jsonPath("$.type").value("urn:cpa:problem:advisor-not-configured"))
+                .andExpect(jsonPath("$.code").value("advisor-not-configured"))
                 .andExpect(jsonPath("$.status").value(503))
                 .andExpect(jsonPath("$.requestId").isNotEmpty());
     }
@@ -52,7 +53,8 @@ class ApiExceptionHandlerTest {
         mockMvc.perform(get("/missing"))
                 .andExpect(status().isNotFound())
                 .andExpect(content().contentTypeCompatibleWith(MediaType.APPLICATION_PROBLEM_JSON))
-                .andExpect(jsonPath("$.status").value(404));
+                .andExpect(jsonPath("$.status").value(404))
+                .andExpect(jsonPath("$.code").value("not-found"));
     }
 
     @RestController

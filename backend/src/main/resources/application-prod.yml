@@ -30,13 +30,18 @@ cpa:
     # Fara `localhost` implicit in productie: lista exacta (URL-ul Vercel de productie + eventual un alias stabil
     # de preview) se seteaza in dashboard-ul Render. Vezi docs/vercel/README.md, sectiunea CORS.
     allowed-origins: ${CORS_ALLOWED_ORIGINS}
+  limits:
+    # Render pune un proxy in fata aplicatiei: adresa conexiunii este a proxy-ului, nu a vizitatorului, deci limitele
+    # per IP s-ar aplica tuturor deodata. Cu 1, se ia ultima adresa din X-Forwarded-For (cea adaugata de proxy; ce
+    # trimite clientul sta mai in stanga si nu e de incredere). De verificat pe Render in Faza 9; vezi docs/render/README.md.
+    trusted-proxy-hops: ${CPA_TRUSTED_PROXY_HOPS:1}
 
 management:
   health:
     db:
       # /actuator/health este si health check-ul Render (la cateva secunde) si "ping-ul de trezire" al frontend-ului.
       # Daca ar interoga baza, ar tine Neon treaz non-stop si ar consuma cele 100 CU-ore gratuite pe luna.
-      # Disponibilitatea bazei de date va avea un grup de readiness separat, cand apare persistenta (Faza 4).
+      # Disponibilitatea bazei de date nu are inca un grup de readiness separat (amanat la Faza 9, vezi docs/neon/README.md).
       enabled: false
 
 springdoc:
