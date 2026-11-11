@@ -20,7 +20,7 @@ Versiunile sunt în `backend/pom.xml` (părintele Boot și proprietățile `spri
 
 - **springdoc vs Spring AI:** Spring AI aduce `swagger-annotations-jakarta` 2.2.38 și `swagger-annotations` 2.2.31 (prin `openai-java-core`), mai vechi decât 2.2.55 cerut de springdoc 3.2.0. Rezultat: `/v3/api-docs` răspundea 500 cu `NoSuchMethodError: Schema.$dynamicRef()`. Soluția din `pom.xml`: `swagger-annotations-jakarta` fixat la 2.2.55 în `dependencyManagement` și `swagger-annotations` exclus din starter-ul OpenAI. `CpaBackendApplicationTests` păzește acest caz.
 - **Fără cheie:** Spring AI 2.0.2 nu oprește aplicația dacă `spring.ai.openai.api-key` este gol; disponibilitatea consilierului se verifică separat (`AdvisorAvailability`).
-- **Model:** `gpt-5-mini` are dată de oprire (2026-12-11) — vezi [`../openai/README.md`](../openai/README.md).
+- **Model:** `gpt-5.6-terra` ([ADR 0010](../adr/0010-model-openai-inlocuitor-gpt-5-mini.md)); predecesorul `gpt-5-mini` se oprește la 2026-12-11 — vezi [`../openai/README.md`](../openai/README.md).
 
 ## Straturi
 
@@ -44,7 +44,7 @@ Regulile `api → service → repository`, `service → domain`, `ai` folosit do
 | Proprietate / variabilă                              | Implicit                  | Rol                                                                                  |
 | ---------------------------------------------------- | ------------------------- | ------------------------------------------------------------------------------------ |
 | `OPENAI_API_KEY` → `spring.ai.openai.api-key`        | gol                       | Cheia OpenAI; doar în backend. Lipsa ei nu oprește aplicația.                        |
-| `CPA_LLM_MODEL` → `cpa.llm.model`                    | `gpt-5-mini`              | Singurul model folosit (ADR 0007).                                                   |
+| `CPA_LLM_MODEL` → `cpa.llm.model`                    | `gpt-5.6-terra`           | Singurul model folosit (ADR 0007, modelul din ADR 0010).                             |
 | `CORS_ALLOWED_ORIGINS` → `cpa.cors.allowed-origins`  | `http://localhost:3000` (în `prod`: fără implicit) | Origini separate prin virgulă; `*` este refuzat la pornire.                 |
 | `SPRING_PROFILES_ACTIVE`                             | niciunul (dezvoltare)     | `prod` pe Render: activează `application-prod.yml` (vezi mai jos).                   |
 | `CPA_TRUSTED_PROXY_HOPS` → `cpa.limits.trusted-proxy-hops` | `0` local, `1` în `prod` | Câte proxy-uri de încredere sunt între internet și aplicație, pentru adresa IP din limitele de rată (vezi „Limite de rată și buget”). |

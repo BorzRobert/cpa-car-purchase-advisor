@@ -25,7 +25,7 @@ Toate se setează în **Render → serviciul `cpa-backend` → Environment**. Ni
 | `SPRING_DATASOURCE_PASSWORD` | parola rolului din Neon                                                                                  | `sync: false`           |
 | `CORS_ALLOWED_ORIGINS`       | originile frontend-ului, separate prin virgulă, fără `*` — vezi [`../vercel/README.md`](../vercel/README.md) | `sync: false`      |
 | `OPENAI_API_KEY`             | **substituent** `your_openai_api_key` până în Faza 5/9; cheia reală se pune doar aici, în dashboard      | `sync: false`           |
-| `CPA_LLM_MODEL`              | `gpt-5-mini` deocamdată (ADR 0007) — **de reconfirmat înainte de Faza 5**, vezi [`../openai/README.md`](../openai/README.md) | `sync: false` |
+| `CPA_LLM_MODEL`              | opțională; implicit `gpt-5.6-terra` (ADR 0010). Dacă ai setat deja `gpt-5-mini` în dashboard, șterge sau schimbă valoarea (modelul se oprește la 2026-12-11), vezi [`../openai/README.md`](../openai/README.md) | `sync: false` |
 | `CPA_TRUSTED_PROXY_HOPS`     | opțională; implicit `1` în profilul `prod` (ultima intrare din `X-Forwarded-For`). Se setează doar dacă verificarea din Faza 9 arată altceva | nu apare |
 
 `PORT` nu se setează: Render îl injectează (implicit `10000`), iar `Dockerfile` îl citește (`-Dserver.port=${PORT:-8080}`). Verificat local cu `PORT=10000`.
