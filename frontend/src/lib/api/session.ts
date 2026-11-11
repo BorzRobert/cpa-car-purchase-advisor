@@ -45,6 +45,14 @@ export async function ensureSessionToken(): Promise<string> {
   return useAppStore.getState().sessionToken ?? createSession();
 }
 
+/** După „Șterge-mi datele”: uită tokenul mort și conversația deschisă; interogările se reiau, iar prima cere o sesiune nouă. */
+export async function forgetSession(): Promise<void> {
+  const store = useAppStore.getState();
+  store.setSessionToken(null);
+  store.setActiveConversation(null);
+  await queryClient.resetQueries();
+}
+
 /** Cheamă-l după un 401: înlocuiește tokenul respins cu unul nou și întoarce tokenul de folosit la reîncercare. */
 export async function renewSession(rejectedToken: string): Promise<string> {
   const store = useAppStore.getState();

@@ -14,7 +14,7 @@
  */
 
 import { useState } from "react";
-import { ChevronUp, MoreHorizontal, Pencil, Plus, Settings, Trash2 } from "lucide-react";
+import { ChevronUp, CircleHelp, MoreHorizontal, Pencil, Plus, Settings, Trash2 } from "lucide-react";
 import { toast } from "sonner";
 import {
   Sidebar,
@@ -56,6 +56,7 @@ export function AppSidebar() {
   const activeConversationId = useAppStore(state => state.activeConversationId);
   const setActiveConversation = useAppStore(state => state.setActiveConversation);
   const openSettings = useAppStore(state => state.openSettings);
+  const setGuideOpen = useAppStore(state => state.setGuideOpen);
 
   /** Conversația aflată în redenumire. `null` = dialogul e închis. */
   const [renaming, setRenaming] = useState<Conversation | null>(null);
@@ -99,14 +100,14 @@ export function AppSidebar() {
 
   return (
     <>
-      <Sidebar>
+      <Sidebar aria-label="Navigare" role="navigation">
         <SidebarHeader className="gap-3 p-3">
           <div className="flex items-center gap-2 px-1">
             {/* Marca, desenată din tokenii temei: se adaptează singură la temă și nu adaugă o cerere de rețea. */}
-            <span className="grid size-6 place-items-center rounded-md bg-primary text-[11px] font-semibold text-primary-foreground">
+            <span className="grid size-6 place-items-center rounded-md bg-primary font-heading text-[11px] font-bold text-primary-foreground">
               C
             </span>
-            <span className="text-base font-semibold tracking-tight">CPA</span>
+            <span className="font-heading text-base font-semibold tracking-tight">CPA</span>
           </div>
 
           <Button onClick={handleNew} className="w-full justify-start gap-2">
@@ -174,20 +175,20 @@ export function AppSidebar() {
                 ))}
 
                 {conversations.isError && (
-                  <div className="flex flex-col items-start gap-2 px-2 py-4 text-sm text-muted-foreground">
+                  <li className="flex flex-col items-start gap-2 px-2 py-4 text-sm text-muted-foreground">
                     <p>Nu am putut încărca conversațiile.</p>
                     <Button variant="outline" size="xs" onClick={() => void conversations.refetch()}>
                       Reîncearcă
                     </Button>
-                  </div>
+                  </li>
                 )}
 
                 {conversations.data?.length === 0 && (
                   // Starea goală: fără ea, un utilizator care și-a șters tot ar vedea un panou pustiu.
-                  <p className="px-2 py-6 text-sm text-muted-foreground">
+                  <li className="px-2 py-6 text-sm text-muted-foreground">
                     Nicio conversație încă. Apasă <span className="font-medium text-foreground">Conversație nouă</span>{" "}
                     ca să începi.
-                  </p>
+                  </li>
                 )}
               </SidebarMenu>
             </ScrollArea>
@@ -201,10 +202,21 @@ export function AppSidebar() {
             <SidebarMenuItem>
               <SidebarMenuButton
                 onClick={() => {
+                  setGuideOpen(true);
+                  closeOnMobile();
+                }}
+              >
+                <CircleHelp />
+                <span className="flex-1 truncate text-left">Ghid</span>
+                <kbd className="rounded border px-1 font-mono text-[10px] text-muted-foreground">?</kbd>
+              </SidebarMenuButton>
+            </SidebarMenuItem>
+            <SidebarMenuItem>
+              <SidebarMenuButton
+                onClick={() => {
                   openSettings();
                   closeOnMobile();
                 }}
-                aria-label="Deschide preferințele"
               >
                 <Settings />
                 <span className="flex-1 truncate text-left">Preferințe</span>

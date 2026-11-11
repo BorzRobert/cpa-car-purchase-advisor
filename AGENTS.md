@@ -47,11 +47,11 @@ Every external integration (OpenAI, Render, Neon, Vercel, …) ships with `docs/
 
 ## 5. Frontend stack (fixed)
 
-- **Everything is Tailwind + shadcn/ui. No hand-written CSS, no second component library.** Need a component? `npx shadcn@latest add <name>` — do not write primitives by hand. `src/components/ui/` is generated; do not edit it by hand (documented exception: `sonner.tsx` uses the app's own `useTheme()`).
+- **Everything is Tailwind + shadcn/ui. No hand-written CSS, no second component library.** Need a component? `npx shadcn@latest add <name>` — do not write primitives by hand. `src/components/ui/` is generated; do not edit it by hand (documented exceptions: `sonner.tsx` uses the app's own `useTheme()`; `slider.tsx` forwards a `thumbLabel` prop to the thumb, because the generated version leaves the range input without an accessible name).
 - **One component per file**; file names in `kebab-case`, components in `PascalCase`.
 - **Registry, not `if` chains.** Lists that grow are declared as data and iterated over.
 - **Mock data lives only in `src/lib/mock/`** until it is replaced by backend data.
-- **The center of the app stays minimal:** no action bar and no theme toggle in the header; the theme is changed only in Settings → General → Appearance.
+- **The center of the app stays minimal:** no action bar and no theme toggle in the header (the only controls allowed there are pane toggles: `SidebarTrigger` and, below 1280 px, the button that opens the side panel); the theme is changed only in Settings → General → Appearance.
 - **Theme is not in the Zustand store:** it is managed by `ThemeProvider` (`createContext` + `useContext`) and persisted in `localStorage["cpa-theme"]`; `cpa-app` holds the rest of the app state.
 - **Message transforms** live in `src/lib/message-utils.ts` as pure functions; text extraction from message parts has a single place.
 - **Model-generated content** is rendered through the single Markdown component, with no raw HTML: no HTML plugins and no `dangerouslySetInnerHTML` on model text.

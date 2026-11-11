@@ -33,6 +33,10 @@ export const api = {
     list: () => apiJson<ShortlistItem[]>("/api/v1/shortlist"),
     add: (variantId: string) => apiJson<ShortlistItem>("/api/v1/shortlist", { method: "POST", body: { variantId } }),
     remove: (id: string) => apiJson<void>(`/api/v1/shortlist/${id}`, { method: "DELETE" })
+  },
+  session: {
+    /** „Șterge-mi datele”: sesiunea, profilul, conversațiile și lista scurtă; tokenul curent nu mai funcționează. */
+    deleteCurrent: () => apiJson<void>("/api/v1/sessions/current", { method: "DELETE" })
   }
 };
 

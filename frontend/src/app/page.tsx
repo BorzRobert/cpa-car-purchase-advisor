@@ -17,19 +17,24 @@
 import { SidebarInset, SidebarProvider } from "@/components/ui/sidebar";
 import { AppSidebar } from "@/components/layout/app-sidebar";
 import { Chat } from "@/components/chat/chat";
+import { GuideDialog } from "@/components/guide/guide-dialog";
+import { OnboardingDialog } from "@/components/guide/onboarding-dialog";
 import { SettingsDialog } from "@/components/settings/settings-dialog";
 
 export default function Home() {
   return (
     // `h-svh` + `overflow-hidden`: aplicația ocupă exact ecranul, iar derularea se întâmplă
     // DOAR în listele interne (conversații, mesaje). Altfel pagina ar derula în întregime și
-    // composer-ul ar fugi de sub degete pe telefon.
-    <SidebarProvider className="h-svh overflow-hidden">
+    // composer-ul ar fugi de sub degete pe telefon. `--sidebar-width`: navigație subțire, ca
+    // să rămână loc pentru conversație și panoul lateral.
+    <SidebarProvider className="h-svh overflow-hidden" style={{ "--sidebar-width": "15rem" } as React.CSSProperties}>
       <AppSidebar />
       <SidebarInset className="min-h-0 min-w-0 overflow-hidden">
         <Chat />
       </SidebarInset>
       <SettingsDialog />
+      <GuideDialog />
+      <OnboardingDialog />
     </SidebarProvider>
   );
 }
