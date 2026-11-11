@@ -194,7 +194,7 @@ export const useAppStore = create<AppState>()(
       setSettingsSection: section => set({ settingsSection: section })
     }),
     {
-      name: "skillforge-app",
+      name: "cpa-app",
 
       /**
        * DE CE `skipHydration` și rehidratare manuală (vezi `useStoreHydration`):

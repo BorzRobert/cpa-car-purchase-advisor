@@ -23,8 +23,8 @@ import type { ResolvedTheme, ThemePreference } from "@/lib/types";
 
 /** Interogarea sistemului de operare. Constantă, ca să nu apară scrisă greșit în două locuri. */
 const DARK_QUERY = "(prefers-color-scheme: dark)";
-const THEME_STORAGE_KEY = "skillforge-theme";
-const LEGACY_STORAGE_KEY = "skillforge-app";
+const THEME_STORAGE_KEY = "cpa-theme";
+const LEGACY_STORAGE_KEY = "cpa-app";
 
 type ThemeContextValue = {
   preference: ThemePreference;

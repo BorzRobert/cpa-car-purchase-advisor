@@ -45,14 +45,14 @@ export const metadata: Metadata = {
  * întunecată ar vedea o fracțiune de secundă de alb — sâcâitor și foarte vizibil. Scriptul de
  * aici e sincron: rulează înainte de desenare și pune clasa la timp.
  *
- * DE CE citește `localStorage["skillforge-theme"]`:
+ * DE CE citește `localStorage["cpa-theme"]`:
  * tema are acum starea ei, separată de store-ul aplicației. Fallback-ul vechi este o punte
- * temporară pentru utilizatorii care au deja o preferință în `skillforge-app`.
+ * temporară pentru utilizatorii care au deja o preferință în `cpa-app`.
  */
 const themeScript = `(function () {
   try {
-    var raw = localStorage.getItem("skillforge-theme");
-    var legacyRaw = localStorage.getItem("skillforge-app");
+    var raw = localStorage.getItem("cpa-theme");
+    var legacyRaw = localStorage.getItem("cpa-app");
     var legacyPreference = legacyRaw ? JSON.parse(legacyRaw).state.theme : undefined;
     var preference = raw || legacyPreference || "sistem";
     var dark = preference === "dark" ||
