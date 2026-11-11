@@ -35,6 +35,8 @@ cpa:
     max-output-tokens: 4000
     # Cate mesaje recente intra in prompt; restul conversatiei ramane in baza de date, nu in factura.
     history-messages: 20
+    # Plafonul apelurilor de unealta intr-un singur raspuns: opreste o bucla de unelte care ar consuma tokeni la nesfarsit.
+    max-tool-calls: 8
     # USD per milion de tokeni, doar pentru jurnalul „cost per raspuns” (preturile gpt-5.6-terra, verificate 2026-11-11).
     input-usd-per-million: 2.0
     output-usd-per-million: 12.0

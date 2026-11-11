@@ -1,6 +1,10 @@
 package ro.cpa.advisor.service;
 
+import java.util.ArrayList;
+import java.util.LinkedHashSet;
+import java.util.List;
 import java.util.Locale;
+import java.util.Set;
 import java.util.UUID;
 import java.util.function.Consumer;
 import org.slf4j.Logger;
@@ -66,11 +70,16 @@ public class AdvisorService {
             return;
         }
 
+        // Pe langa trimiterea evenimentelor, retinem ce unelte au rulat si ce carduri s-au aratat (pentru metadate).
+        ToolTrace trace = new ToolTrace();
+        Consumer<AdvisorEvent> traced = event -> {
+            trace.observe(event);
+            events.accept(event);
+        };
+
         AdvisorOutcome outcome;
         try {
-            outcome = model.stream(
-                    new AdvisorRequest(profile, turn.history(), turn.userMessage().content()),
-                    delta -> events.accept(new AdvisorEvent.Token(delta)));
+            outcome = model.stream(new AdvisorRequest(sessionId, profile, turn.history(), turn.userMessage().content()), traced);
         } catch (AdvisorUnavailableException failure) {
             fail(events);
             return;
@@ -78,11 +87,11 @@ public class AdvisorService {
 
         // Consumul se inregistreaza ORICUM (si la intrerupere, estimat): altfel „opreste” ar fi un mod de a nu plati bugetul.
         usage.record(sessionId, llm.model(), outcome.inputTokens(), outcome.outputTokens());
-        logCost(outcome);
+        logCost(outcome, trace);
 
         String text = outcome.text().strip();
         if (!text.isEmpty()) {
-            messages.addAssistantMessage(conversationId, assistantId, truncate(text), metadata(outcome));
+            messages.addAssistantMessage(conversationId, assistantId, truncate(text), metadata(outcome, trace));
         }
         if (outcome.aborted()) {
             return;
@@ -106,16 +115,17 @@ public class AdvisorService {
         }
     }
 
-    private void logCost(AdvisorOutcome outcome) {
+    private void logCost(AdvisorOutcome outcome, ToolTrace trace) {
         // Fara id-uri si fara text: jurnalul retine doar cifre, ca sa se poata urmari costul pe raspuns.
         log.info(
-                "Advisor answer: model={} promptVersion={} inputTokens={} outputTokens={} estimated={} aborted={} costUsd={}",
+                "Advisor answer: model={} promptVersion={} inputTokens={} outputTokens={} estimated={} aborted={} toolCalls={} costUsd={}",
                 llm.model(),
                 AdvisorPrompt.VERSION,
                 outcome.inputTokens(),
                 outcome.outputTokens(),
                 outcome.estimated(),
                 outcome.aborted(),
+                trace.tools().size(),
                 String.format(Locale.ROOT, "%.5f", costUsd(outcome)));
     }
 
@@ -123,15 +133,54 @@ public class AdvisorService {
         return (outcome.inputTokens() * llm.inputUsdPerMillion() + outcome.outputTokens() * llm.outputUsdPerMillion()) / 1_000_000.0;
     }
 
-    private String metadata(AdvisorOutcome outcome) {
+    private String metadata(AdvisorOutcome outcome, ToolTrace trace) {
         return json.writeValueAsString(new AnswerMetadata(
-                llm.model(), AdvisorPrompt.VERSION, outcome.inputTokens(), outcome.outputTokens(), outcome.estimated(), outcome.aborted(), costUsd(outcome)));
+                llm.model(),
+                AdvisorPrompt.VERSION,
+                outcome.inputTokens(),
+                outcome.outputTokens(),
+                outcome.estimated(),
+                outcome.aborted(),
+                costUsd(outcome),
+                trace.tools(),
+                trace.variantIds()));
     }
 
     private static String truncate(String text) {
         return text.length() <= MAX_STORED_CHARS ? text : text.substring(0, MAX_STORED_CHARS);
     }
 
-    /** Ce se retine despre un raspuns, in `message.metadata`: de unde a venit si cat a costat. */
-    record AnswerMetadata(String model, int promptVersion, int inputTokens, int outputTokens, boolean estimated, boolean aborted, double costUsd) {}
+    /** Ce se retine despre un raspuns, in `message.metadata`: de unde a venit, cat a costat, ce unelte au rulat, ce carduri s-au aratat. */
+    record AnswerMetadata(
+            String model,
+            int promptVersion,
+            int inputTokens,
+            int outputTokens,
+            boolean estimated,
+            boolean aborted,
+            double costUsd,
+            List<String> tools,
+            List<String> shownVariantIds) {}
+
+    /** Urma uneltelor dintr-un raspuns, strans din evenimentele care trec spre client. */
+    private static final class ToolTrace {
+        private final List<String> tools = new ArrayList<>();
+        private final Set<String> variantIds = new LinkedHashSet<>();
+
+        synchronized void observe(AdvisorEvent event) {
+            if (event instanceof AdvisorEvent.Tool tool && AdvisorEvent.Tool.STARTED.equals(tool.status())) {
+                tools.add(tool.toolName());
+            } else if (event instanceof AdvisorEvent.Vehicles vehicles) {
+                vehicles.cards().forEach(card -> variantIds.add(card.variantId()));
+            }
+        }
+
+        synchronized List<String> tools() {
+            return List.copyOf(tools);
+        }
+
+        synchronized List<String> variantIds() {
+            return List.copyOf(variantIds);
+        }
+    }
 }

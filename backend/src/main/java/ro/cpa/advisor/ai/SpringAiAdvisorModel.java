@@ -2,6 +2,7 @@ package ro.cpa.advisor.ai;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
 import java.util.function.Consumer;
 import java.util.stream.Stream;
 import org.slf4j.Logger;
@@ -17,6 +18,7 @@ import org.springframework.ai.chat.prompt.Prompt;
 import org.springframework.ai.openai.OpenAiChatOptions;
 import org.springframework.stereotype.Component;
 import ro.cpa.advisor.config.CpaProperties;
+import ro.cpa.advisor.domain.AdvisorEvent;
 import ro.cpa.advisor.domain.AdvisorUnavailableException;
 import ro.cpa.advisor.domain.MessageRole;
 import ro.cpa.advisor.domain.StreamClosedException;
@@ -32,15 +34,17 @@ public class SpringAiAdvisorModel implements AdvisorModel {
     private static final Logger log = LoggerFactory.getLogger(SpringAiAdvisorModel.class);
 
     private final ChatClient chat;
+    private final AdvisorTools tools;
     private final CpaProperties.Llm llm;
 
-    public SpringAiAdvisorModel(ChatClient.Builder chatClientBuilder, CpaProperties properties) {
+    public SpringAiAdvisorModel(ChatClient.Builder chatClientBuilder, AdvisorTools tools, CpaProperties properties) {
         this.chat = chatClientBuilder.build();
+        this.tools = tools;
         this.llm = properties.llm();
     }
 
     @Override
-    public AdvisorOutcome stream(AdvisorRequest request, Consumer<String> onToken) {
+    public AdvisorOutcome stream(AdvisorRequest request, Consumer<AdvisorEvent> events) {
         List<Message> messages = new ArrayList<>();
         messages.add(new SystemMessage(AdvisorPrompt.system(request.profile())));
         for (ro.cpa.advisor.domain.Message turn : request.history()) {
@@ -60,11 +64,14 @@ public class SpringAiAdvisorModel implements AdvisorModel {
         StringBuilder text = new StringBuilder();
         Usage usage = null;
         boolean aborted = false;
-        try (Stream<ChatResponse> responses = chat.prompt(new Prompt(messages, options)).stream().chatResponse().toStream()) {
+        ToolRun run = new ToolRun(request.sessionId(), events, llm.maxToolCalls());
+        var call = chat.prompt(new Prompt(messages, options)).tools(tools).toolContext(Map.of(ToolRun.CONTEXT_KEY, run));
+        try (Stream<ChatResponse> responses = call.stream().chatResponse().toStream()) {
             for (var it = responses.iterator(); it.hasNext(); ) {
                 ChatResponse response = it.next();
                 Usage reported = response.getMetadata() == null ? null : response.getMetadata().getUsage();
-                // Spring AI cumuleaza consumul peste apelurile succesive ale aceluiasi raspuns; ultimul raport este totalul.
+                // ToolCallingAdvisor aduna consumul peste apelurile succesive ale aceluiasi raspuns (`UsageAccumulator`):
+                // ultimul raport este totalul, nu doar ultimul apel.
                 if (reported != null && reported.getTotalTokens() != null && reported.getTotalTokens() > 0) {
                     usage = reported;
                 }
@@ -73,7 +80,7 @@ public class SpringAiAdvisorModel implements AdvisorModel {
                         : response.getResult().getOutput().getText();
                 if (delta != null && !delta.isEmpty()) {
                     text.append(delta);
-                    onToken.accept(delta);
+                    events.accept(new AdvisorEvent.Token(delta));
                 }
             }
         } catch (StreamClosedException closed) {

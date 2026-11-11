@@ -89,8 +89,16 @@ final class SseEventWriter implements Consumer<AdvisorEvent>, AutoCloseable {
         out.flush();
     }
 
-    // Evenimentul `error` are aceeasi forma ca orice eroare a API-ului (RFC 9457), ca UI-ul sa o citeasca la fel.
+    // Evenimentul `error` are aceeasi forma ca orice eroare a API-ului (RFC 9457), ca UI-ul sa o citeasca la fel;
+    // `tool` isi expune numele uneltei ca `name` (contractul), pentru ca `name()` al evenimentului este numele SSE.
     private static Object payload(AdvisorEvent event) {
+        if (event instanceof AdvisorEvent.Tool tool) {
+            Map<String, Object> payload = new LinkedHashMap<>();
+            payload.put("name", tool.toolName());
+            payload.put("status", tool.status());
+            payload.put("summary", tool.summary());
+            return payload;
+        }
         if (event instanceof AdvisorEvent.Failed failed) {
             Map<String, Object> problem = new LinkedHashMap<>();
             problem.put("type", URI.create("urn:cpa:problem:" + failed.code()).toString());

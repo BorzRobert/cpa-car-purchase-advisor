@@ -2,7 +2,7 @@
 
 Acest document este **contractul** dintre `frontend/` (Next.js, doar UI) și `backend/` (Spring Boot). Contractul formal, citibil de mașină, este documentul OpenAPI din [`openapi.json`](openapi.json); aici stau regulile pe care el nu le poate exprima (identitate, erori, limite, streaming). Dacă documentul și codul diferă, testul `OpenApiSnapshotTest` pică în CI.
 
-**Stadiul (Faza 5a):** REST/JSON complet și testat, iar endpoint-ul de streaming SSE (secțiunea de la final) este **implementat** pentru evenimentele `meta`, `token`, `error` și `done`; `tool`, `vehicles`, `profile` vin în 5b și `compare` în 5c.
+**Stadiul (Faza 5b):** REST/JSON complet și testat, iar endpoint-ul de streaming SSE (secțiunea de la final) este **implementat** pentru evenimentele `meta`, `token`, `tool`, `vehicles`, `profile`, `error` și `done`; `compare` vine în 5c.
 
 ```mermaid
 sequenceDiagram
@@ -130,7 +130,7 @@ Cheia „per IP” este adresa clientului: în producție se ia din `X-Forwarded
 - **Faza 6:** frontend-ul generează `lib/api/schema.d.ts` din acest fișier cu `openapi-typescript`; tipurile nu se scriu de mână.
 - Swagger UI: butonul **Authorize** primește tokenul de la `POST /api/v1/sessions` și îl trimite pe fiecare cerere — așa se poate parcurge tot CRUD-ul local.
 
-## Streaming SSE (Faza 5a: `meta`, `token`, `error`, `done`)
+## Streaming SSE (Faza 5b: `meta`, `token`, `tool`, `vehicles`, `profile`, `error`, `done`)
 
 `POST /api/v1/conversations/{id}/messages` răspunde cu `text/event-stream;charset=UTF-8`, cu antetele `Cache-Control: no-cache` și `X-Accel-Buffering: no`, și un comentariu SSE de heartbeat (`: keep-alive`) la ~15 secunde (`cpa.stream.heartbeat-seconds`), ca proxy-urile să nu închidă sau să nu buferizeze fluxul. Clientul folosește `fetch` + `ReadableStream` (nu `EventSource`, care nu poate trimite POST sau antete) și poate trimite `Accept: text/event-stream, application/problem+json`; oprirea se face cu `AbortController`: serverul oprește apelul către model, iar consumul răspunsului parțial se înregistrează estimat. Verificările (proprietar, buget, text, limită de mesaje, cheie) rămân înainte de orice apel către model.
 
@@ -139,6 +139,15 @@ Un cadru arată așa (fiecare `data:` este o singură linie JSON):
 ```text
 event: meta
 data: {"messageId":"…","conversationId":"…"}
+
+event: tool
+data: {"name":"searchVehicles","status":"started","summary":"Caut mașini potrivite…"}
+
+event: vehicles
+data: {"cards":[{"variantId":"golf-1-5-tsi-130","make":"Volkswagen","priceEur":29900,"…":"…"}],"dataAsOf":"2026-11-11"}
+
+event: tool
+data: {"name":"searchVehicles","status":"finished","summary":"Am găsit 5 variante"}
 
 event: token
 data: {"delta":"Salut! "}
@@ -149,14 +158,18 @@ event: done
 data: {"usage":{"input":1523,"output":212}}
 ```
 
-Ordinea este mereu `meta`, apoi zero sau mai multe `token`, apoi **fie** `done`, **fie** `error`. `messageId` din `meta` este id-ul sub care răspunsul apare în `GET …/messages`. Dacă ultimul eveniment nu este `done` sau `error` (conexiune întreruptă), UI-ul tratează răspunsul ca incomplet.
+Ordinea este mereu `meta`, apoi evenimente `token`, `tool`, `vehicles`, `profile` în orice amestec (modelul poate scrie text, cere o unealtă și apoi continua), apoi **fie** `done`, **fie** `error`. `messageId` din `meta` este id-ul sub care răspunsul apare în `GET …/messages`. Dacă ultimul eveniment nu este `done` sau `error` (conexiune întreruptă), UI-ul tratează răspunsul ca incomplet.
+
+- **`tool`:** un eveniment `started` și unul `finished` pentru fiecare apel; `summary` este text în română, gata de afișat („Caut mașini potrivite…”, „Am găsit 5 variante”, „Operațiunea nu a reușit”). `name` este numele uneltei (`updateBuyerProfile`, `searchVehicles`, `compareVehicles`, `addToShortlist`, `getShortlist`; mai multe în 5c). Un răspuns poate avea cel mult `cpa.llm.max-tool-calls` (8) apeluri.
+- **`vehicles`:** `cards` este lista cardurilor de arătat (o variantă pe card: id, marcă, model, motorizare, preț, consum, costuri anuale, siguranță, note de fiabilitate etc.), iar `dataAsOf` data cifrelor; UI-ul afișează „date la” lângă orice preț. Evenimentele SSE nu pot fi descrise în `openapi.json`, deci forma cardului (record-ul `VehicleCard`) este documentată doar aici; cum îi obține frontend-ul tipul se decide în Faza 6.
+- **`profile`:** `patch` conține **doar** câmpurile pe care agentul le-a schimbat, cu valorile așa cum s-au salvat (curățate). O valoare `null` înseamnă „câmp șters” (de exemplu o listă golită). Panoul lateral se actualizează din patch, fără alt apel.
 
 | Eveniment  | Conținut                                                  | Rol                                              | Stare      |
 | ---------- | --------------------------------------------------------- | ------------------------------------------------ | ---------- |
 | `meta`     | `{messageId, conversationId}`                             | Începutul răspunsului                            | 5a         |
 | `token`    | `{delta}`                                                 | Text în streaming                                | 5a         |
 | `tool`     | `{name, status: started\|finished, summary}`              | „Se calculează costul total…” în UI              | 5b         |
-| `vehicles` | `{cards: VehicleCard[]}`                                  | Carduri în loc de tabele Markdown                | 5b         |
+| `vehicles` | `{cards: VehicleCard[], dataAsOf}`                        | Carduri în loc de tabele Markdown                | 5b         |
 | `compare`  | `{vehicles, criteria, scores}`                            | Widget de comparație                             | 5c         |
 | `profile`  | `{patch}`                                                 | Profil actualizat de agent (panoul lateral)      | 5b         |
 | `error`    | `ProblemDetail` (aceeași formă ca mai sus; `code: advisor-unavailable`) | Eroare în mijlocul fluxului        | 5a         |

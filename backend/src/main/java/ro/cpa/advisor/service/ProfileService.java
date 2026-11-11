@@ -5,6 +5,7 @@ import java.util.UUID;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import ro.cpa.advisor.domain.BuyerProfile;
+import ro.cpa.advisor.domain.ProfilePatch;
 import ro.cpa.advisor.repository.BuyerProfileEntity;
 import ro.cpa.advisor.repository.BuyerProfileRepository;
 
@@ -31,6 +32,12 @@ public class ProfileService {
         BuyerProfileEntity entity = profiles.findById(sessionId).orElseGet(() -> new BuyerProfileEntity(sessionId));
         entity.apply(profile, clock.instant());
         return profiles.save(entity).toDomain();
+    }
+
+    /** Modificare partiala (folosita de agent): ce lipseste din patch ramane cum era; rezultatul trece din nou prin reguli. */
+    @Transactional
+    public BuyerProfile merge(UUID sessionId, ProfilePatch patch) {
+        return replace(sessionId, get(sessionId).mergedWith(patch));
     }
 
     @Transactional

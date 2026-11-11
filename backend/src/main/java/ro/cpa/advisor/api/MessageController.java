@@ -69,8 +69,10 @@ public class MessageController {
             summary = "Send a message and stream the advisor's answer",
             description = """
                     Stores the user message, then streams the answer as Server-Sent Events (`text/event-stream`):
-                    `meta` {messageId, conversationId}, then `token` {delta} repeatedly, then `done` {usage: {input, output}};
-                    `error` (same shape as a problem response) replaces `done` when the answer fails after the stream began.
+                    `meta` {messageId, conversationId}, then `token` {delta} repeatedly, interleaved with the advisor's tool
+                    activity (`tool` {name, status: started|finished, summary}, `vehicles` {cards, dataAsOf}, `profile` {patch}),
+                    then `done` {usage: {input, output}}; `error` (same shape as a problem response) replaces `done` when the
+                    answer fails after the stream began.
                     A comment line is sent every ~15 s as a heartbeat. Everything that can be checked up front (401, 404,
                     400, 409, 429, 503) is a regular `application/problem+json` response before the stream starts.
                     Call it with `fetch` and read the body as a stream; `EventSource` cannot send POST or headers.

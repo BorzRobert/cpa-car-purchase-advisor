@@ -2,7 +2,7 @@
 
 > Acest fișier este **sursa de adevăr** pentru ce construim. Orice schimbare de direcție se scrie AICI, nu doar în conversație. Planul de execuție pe faze, cu deciziile D1–D9, este în [`plan.md`](plan.md) (în engleză); deciziile au câte un ADR în [`adr/`](adr/).
 >
-> Ultima actualizare: 2026-11-11 · Faza curentă: **Faza 5 — creierul consilierului** (în lucru, pe branch-ul `cpa/phase-5-advisor-brain`; sub-faza 5a — streaming LLM — este livrată; urmează 5b unelte, 5c scoring/TCO, 5d guardrails și evaluare). Faza 4 este integrată în `main`; Faza 3 este în producție, cu o singură măsurătoare rămasă: durata cold start-ului, vezi [`render/README.md`](render/README.md#observat-pe-render)
+> Ultima actualizare: 2026-11-11 · Faza curentă: **Faza 5 — creierul consilierului** (în lucru, pe branch-ul `cpa/phase-5-advisor-brain`; sub-fazele 5a (streaming LLM) și 5b (unelte) sunt livrate; urmează 5c scoring/TCO și 5d guardrails și evaluare). Faza 4 este integrată în `main`; Faza 3 este în producție, cu o singură măsurătoare rămasă: durata cold start-ului, vezi [`render/README.md`](render/README.md#observat-pe-render)
 
 ---
 
@@ -40,7 +40,7 @@ Detaliile (diagrame, evenimente SSE, straturi) sunt în `plan.md` §2; backend-u
 
 **Livrat în Faza 4 (REST fără model):** sesiuni anonime (`/sessions`, token hash-uit), profil, conversații și mesaje, lista scurtă, catalogul de vehicule (14 modele / 21 de variante, cifre **orientative și neverificate**, „date la” 2026-11-11 — de revizuit și extins înainte de producție), consum și buget zilnic de tokeni, limite de rată (Bucket4j, per instanță) și de volum.
 
-**Livrat în Faza 5a (streaming LLM):** `POST /conversations/{id}/messages` răspunde cu `text/event-stream` (evenimente `meta`, `token`, `done`, `error`; heartbeat), salvează răspunsul consilierului, înregistrează tokenii reali (sau estimați) și costul fiecărui răspuns în jurnal și în `message.metadata`, verifică bugetul înainte de apelul către model. Promptul de sistem este compus într-un singur loc (`ai.AdvisorPrompt`, versionat), iar profilul și mesajele utilizatorului intră ca date delimitate. Fără cheie OpenAI: `503 advisor-not-configured`. CI rulează cu un model înregistrat, fără cheie. Apelul real către model nu a fost încă verificat cu o cheie reală (pașii: [`openai/README.md`](openai/README.md#verificare)). Uneltele (5b), scoring/TCO (5c) și gardurile/evaluarea (5d) urmează.
+**Livrat în Faza 5a (streaming LLM):** `POST /conversations/{id}/messages` răspunde cu `text/event-stream` (evenimente `meta`, `token`, `done`, `error`; heartbeat), salvează răspunsul consilierului, înregistrează tokenii reali (sau estimați) și costul fiecărui răspuns în jurnal și în `message.metadata`, verifică bugetul înainte de apelul către model. Promptul de sistem este compus într-un singur loc (`ai.AdvisorPrompt`, versionat), iar profilul și mesajele utilizatorului intră ca date delimitate. Fără cheie OpenAI: `503 advisor-not-configured`. CI rulează cu un model înregistrat, fără cheie. Apelul real către model nu a fost încă verificat cu o cheie reală (pașii: [`openai/README.md`](openai/README.md#verificare)). **Livrat în Faza 5b (unelte):** agentul are cinci unelte deterministe — `updateBuyerProfile`, `searchVehicles`, `compareVehicles`, `addToShortlist`, `getShortlist` — pe care le cheamă prin bucla de unelte Spring AI; fiecare apel apare în UI ca eveniment `tool`, cardurile ca `vehicles`, iar schimbările de profil ca `profile`. Prețurile și specificațiile vin doar din rezultatele uneltelor (cu „date la”); numărul de apeluri dintr-un răspuns este plafonat. Scoring/TCO (5c) și gardurile/evaluarea (5d) urmează.
 
 ---
 
@@ -53,7 +53,7 @@ Detaliile (diagrame, evenimente SSE, straturi) sunt în `plan.md` §2; backend-u
 | 2    | Schelet backend Spring Boot (straturi, ProblemDetail, CORS, OpenAPI, ArchUnit, Docker, CI) | livrată     |
 | 3    | Deploy „walking skeleton” (Render + Neon + Vercel): stare backend în UI, cold start, Flyway pe Postgres, `render.yaml`, CI frontend | livrată (cold start de măsurat) |
 | 4    | Domeniu, persistență, contract REST, sesiuni, limite                                       | livrată     |
-| 5    | Creierul consilierului: streaming (5a), unelte (5b), scoring/TCO (5c), guardrails/evaluare (5d) | în curs (5a livrată) |
+| 5    | Creierul consilierului: streaming (5a), unelte (5b), scoring/TCO (5c), guardrails/evaluare (5d) | în curs (5a–5b livrate) |
 | 6    | Integrarea frontend-ului, ștergerea codului server vechi (AI SDK, Auth.js, `/api/*`)       | planificată |
 | 7    | Redesign și componente specifice (card vehicul, comparație, TCO, panou lateral)            | planificată |
 | 8    | Ghid în aplicație                                                                          | planificată |

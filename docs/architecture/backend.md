@@ -1,6 +1,6 @@
-# Backend — arhitectură (stadiul Fazei 5a)
+# Backend — arhitectură (stadiul Fazei 5b)
 
-Serviciul din `backend/`: Java 25, Spring Boot, Maven Wrapper. Deține toată logica de produs; frontend-ul doar afișează. Are domeniul, persistența (Flyway + JPA), catalogul de pornire, API-ul REST descris în [`communication.md`](communication.md), identitatea prin token de sesiune anonim, limitele de rată și contabilitatea bugetului zilnic. Din Faza 5a apelează modelul: `POST /conversations/{id}/messages` răspunde în streaming (SSE), vezi „Consilierul” mai jos. Uneltele (căutare, comparare, TCO) vin în 5b–5c, iar garduri și evaluare în 5d.
+Serviciul din `backend/`: Java 25, Spring Boot, Maven Wrapper. Deține toată logica de produs; frontend-ul doar afișează. Are domeniul, persistența (Flyway + JPA), catalogul de pornire, API-ul REST descris în [`communication.md`](communication.md), identitatea prin token de sesiune anonim, limitele de rată și contabilitatea bugetului zilnic. Din Faza 5a apelează modelul: `POST /conversations/{id}/messages` răspunde în streaming (SSE), vezi „Consilierul” mai jos. Din 5b modelul are unelte deterministe (profil, căutare, comparare, listă scurtă). Scoring, TCO și finanțare vin în 5c, iar garduri și evaluare în 5d.
 
 ## Versiuni fixate (verificate la 2026-11-11)
 
@@ -32,7 +32,7 @@ Pachetul de bază este `ro.cpa.advisor` (D9):
 | `service`    | Cazurile de utilizare: `SessionService`, `ProfileService`, `ConversationService`, `MessageService`, `AdvisorService` (un schimb complet cu consilierul), `ShortlistService`, `VehicleService`, `UsageService` (consum + buget), `RateLimitService`, `StatusService`. Tranzacțiile (`@Transactional`) stau aici (nu pe `AdvisorService`, vezi „Consilierul”); maparea entitate → domeniu se face aici. |
 | `domain`     | Record-uri și enum-uri imuabile (`BuyerProfile`, `Vehicle`, `Message`…), regulile pure (`TextRules` — curățarea textului, `SessionToken` — generare și hash, `VehicleFilter`) și excepțiile de domeniu. Nu depinde de nimic în afară de `java.*`. |
 | `repository` | Entitățile JPA (`*Entity`), repository-urile Spring Data și convertoarele de coloană. Entitățile **nu** ies din acest strat și din `service`: controllerele nu le văd. Cum domeniul nu poate depinde de `jakarta.persistence`, entitățile sunt separate de record-urile de domeniu (`toDomain()`). |
-| `ai`         | Tot ce atinge modelul: `AdvisorPrompt` (**singurul** loc care compune promptul de sistem, versionat), `AdvisorModel` (frontiera spre model, pe care o cunosc serviciile), `SpringAiAdvisorModel` (implementarea cu `ChatClient`), `AdvisorAvailability` (există o cheie utilizabilă? valoarea ei nu iese de aici). Spring AI nu apare în afara acestui pachet (regulă ArchUnit). |
+| `ai`         | Tot ce atinge modelul: `AdvisorPrompt` (**singurul** loc care compune promptul de sistem, versionat), `AdvisorModel` (frontiera spre model, pe care o cunosc serviciile), `SpringAiAdvisorModel` (implementarea cu `ChatClient`), `AdvisorTools` (uneltele `@Tool` ale agentului), `AdvisorToolbox` (portul prin care uneltele cer date — vezi „Unelte”), `AdvisorAvailability` (există o cheie utilizabilă? valoarea ei nu iese de aici). Spring AI nu apare în afara acestui pachet (regulă ArchUnit). |
 | `config`     | `CpaProperties`, `SecurityConfig` (lanțul de securitate + CORS), `SessionAuthenticationFilter`, `RateLimitFilter`, `ClientIpResolver`, `RequestIdFilter`, `OpenApiConfig`, `ClockConfig`, `StreamConfig` (firul pentru heartbeat-ul SSE). |
 
 Regulile `api → service → repository`, `service → domain`, `ai` folosit doar de `service`, `domain` fără dependențe, controllere fără acces la repository sau Spring AI sunt verificate de `ArchitectureTest` (ArchUnit) la fiecare `./mvnw verify`.
@@ -48,7 +48,7 @@ Regulile `api → service → repository`, `service → domain`, `ai` folosit do
 | `CORS_ALLOWED_ORIGINS` → `cpa.cors.allowed-origins`  | `http://localhost:3000` (în `prod`: fără implicit) | Origini separate prin virgulă; `*` este refuzat la pornire.                 |
 | `SPRING_PROFILES_ACTIVE`                             | niciunul (dezvoltare)     | `prod` pe Render: activează `application-prod.yml` (vezi mai jos).                   |
 | `CPA_TRUSTED_PROXY_HOPS` → `cpa.limits.trusted-proxy-hops` | `0` local, `1` în `prod` | Câte proxy-uri de încredere sunt între internet și aplicație, pentru adresa IP din limitele de rată (vezi „Limite de rată și buget”). |
-| `cpa.llm.*` (în `application.yml`)                   | `max-output-tokens: 4000`, `history-messages: 20`, prețuri 2 / 12 USD | Plafonul de tokeni generați, câte mesaje recente intră în prompt și prețurile (USD / milion de tokeni) pentru jurnalul de cost; se schimbă în fișier. |
+| `cpa.llm.*` (în `application.yml`)                   | `max-output-tokens: 4000`, `history-messages: 20`, `max-tool-calls: 8`, prețuri 2 / 12 USD | Plafonul de tokeni generați, câte mesaje recente intră în prompt, câte apeluri de unealtă are voie un răspuns, și prețurile (USD / milion de tokeni) pentru jurnalul de cost; se schimbă în fișier. |
 | `cpa.stream.heartbeat-seconds`                       | `15`                      | Intervalul comentariului SSE de heartbeat.                                           |
 | `cpa.limits.*` (în `application.yml`)                | vezi „Limite de rată și buget” | Limite de rată, de volum și buget zilnic de tokeni; se schimbă în fișier, nu din mediu. |
 | `SPRING_DATASOURCE_URL` / `_USERNAME` / `_PASSWORD`  | H2 în memorie (mod PostgreSQL); în `prod` URL-ul e obligatoriu | Baza de date; în producție Neon (URL JDBC, vezi [`../neon/README.md`](../neon/README.md)). |
@@ -104,7 +104,7 @@ Verificat la 2026-11-11 cu imaginea Docker a backend-ului pe un container Postgr
 - **Erori:** toate ies ca `ProblemDetail` (RFC 9457) cu `requestId` și `code` stabil; catalogul complet este în [`communication.md`](communication.md#erori). Orice excepție neprevăzută → `500` generic, fără detalii interne.
 - **Swagger UI și `/v3/api-docs`** sunt deschise local și în CI, dar **oprite în producție** (profilul `prod`, `404`) — decis în Faza 3; se reconsideră în Faza 9 doar dacă există un motiv.
 
-## Consilierul (Faza 5a)
+## Consilierul (Faza 5)
 
 Drumul unui mesaj, de la `POST /api/v1/conversations/{id}/messages` până la ultimul eveniment SSE:
 
@@ -133,7 +133,20 @@ sequenceDiagram
 - **Memorie (5a):** ultimele `cpa.llm.history-messages` mesaje + profilul structurat. Rezumatul rulant vine în 5d.
 - **Consum și cost:** tokenii raportați de OpenAI (`stream_options.include_usage`); dacă lipsesc, se estimează (~4 caractere/token). Fiecare răspuns scrie în jurnal o linie `Advisor answer: model=… promptVersion=… inputTokens=… outputTokens=… costUsd=…` (doar cifre, fără id-uri sau text) și aceleași cifre în `message.metadata`.
 - **Erori în timpul fluxului:** `error` cu `code: advisor-unavailable` (aceeași formă ca `ProblemDetail`), fără mesajul furnizorului: mesajele OpenAI pot conține fragmente de cheie, deci în jurnal intră doar tipul excepției, iar logger-ul Spring AI care ar scrie mesajul întreg (`MessageAggregator`) este oprit în `application.yml`.
-- **Ipoteze nevalidate cu o cheie reală** (de verificat la prima rulare, vezi [`../openai/README.md`](../openai/README.md#verificare)): că `gpt-5.6-terra` acceptă `max_completion_tokens` și `stream_options` prin Chat Completions așa cum le trimite Spring AI 2.0.2, și că ultimul raport de consum dintr-un flux este totalul (relevant când apar uneltele în 5b).
+- **Ipoteze nevalidate cu o cheie reală** (de verificat la prima rulare, vezi [`../openai/README.md`](../openai/README.md#verificare)): că `gpt-5.6-terra` acceptă `max_completion_tokens` și `stream_options` prin Chat Completions așa cum le trimite Spring AI 2.0.2, și că apelarea de unelte prin Chat Completions funcționează cu acest model (documentația OpenAI o descrie fără restricții, spre deosebire de GPT-6.x, ADR 0010).
+
+### Unelte (Faza 5b)
+
+Cinci unelte `@Tool` în `AdvisorTools`: `updateBuyerProfile`, `searchVehicles`, `compareVehicles`, `addToShortlist`, `getShortlist`. Tot ce contează despre ele:
+
+- **Bucla de unelte este a lui Spring AI** (`ToolCallingAdvisor`, activ implicit în `ChatClient`): modelul cere o unealtă, aplicația o execută, rezultatul (JSON) se întoarce modelului, până când modelul răspunde cu text. Consumul este însumat peste toate apelurile modelului dintr-un răspuns (verificat în `AdvisorToolsTest`, cu bucla reală).
+- **Sensul dependențelor este inversat prin `AdvisorToolbox`.** Regula de straturi spune că `service` poate fi folosit doar de `api`, deci uneltele din `ai` nu pot apela serviciile. `ai` își declară nevoile în interfața `AdvisorToolbox`, iar `AdvisorToolboxService` (în `service`) o implementează delegând la `VehicleService`, `ProfileService` și `ShortlistService`; nu adaugă reguli, deci validările și limitele sunt aceleași ca pe REST.
+- **Sesiunea nu vine de la model.** Uneltele o iau din `ToolContext` (pus de `SpringAiAdvisorModel` pentru fiecare cerere, în `ToolRun`); modelul nu are niciun parametru cu care să ceară datele altei sesiuni (`shortlistToolsActOnTheCallersShortlistOnly`).
+- **Fiecare apel este anunțat în UI** cu `tool` (pornit / terminat) și, unde are sens, `vehicles` sau `profile`. O eroare de domeniu (date invalide, id necunoscut, listă plină) devine un rezultat `{"error": …}` pe care modelul îl poate explica; orice altă excepție devine un mesaj generic, cu doar tipul în jurnal.
+- **Plafon de apeluri:** `cpa.llm.max-tool-calls`. Bugetul de tokeni se verifică înainte de cerere, nu în mijlocul ei, deci fără plafon o buclă de unelte ar putea consuma nelimitat; al (N+1)-lea apel primește „Tool call limit reached”.
+- **Profilul din agent:** `updateBuyerProfile` face o modificare **parțială** (`ProfilePatch`): câmpul lipsă rămâne neschimbat, o listă dată înlocuiește lista veche. Valorile trec prin aceleași reguli ca formularul (`BuyerProfile`), iar evenimentul `profile` poartă valorile curățate.
+- **Rezultatele sunt date, nu instrucțiuni** (regulă în prompt); fiecare rezultat de căutare/comparare include `dataAsOf` și nota „indicative”, iar promptul cere ca prețul să fie însoțit de dată.
+- **Metadate:** ce unelte au rulat și ce variante s-au arătat se salvează în `message.metadata` (`tools`, `shownVariantIds`).
 
 ## Teste
 
@@ -142,7 +155,7 @@ sequenceDiagram
 - unitare: domeniu (`DomainRulesTest`), `ClientIpResolver`, `AdvisorAvailability`, `CpaProperties`, `RequestIdFilter`, `ApiExceptionHandler`, `AdvisorPrompt` (delimitarea datelor), `SseEventWriter`, `SpringAiAdvisorModel` (ordinea mesajelor, consum, întrerupere, eșec);
 - repository, aceleași verificări pe H2 și pe PostgreSQL 17 real (`RepositoryH2Test`, `RepositoryPostgresTest`);
 - contract REST cap-coadă pe H2 cu migrările reale (`ApiContractTest`: autentificare, profil, conversații, lista scurtă, catalog, izolarea sesiunilor, „șterge-mi datele”), limite (`RateLimitTest`) și buget (`DailyBudgetTest`);
-- fluxul SSE cap-coadă (`AdvisorStreamingTest`): ordinea evenimentelor, salvarea răspunsului, consumul, eșecul din timpul fluxului, heartbeat, erori dinaintea fluxului, promptul ajuns la model. **Modelul este unul înregistrat** (`RecordedChatModel`, în `src/test`): înlocuiește `ChatModel`-ul OpenAI, deci tot restul drumului rulează ca în producție, fără rețea și fără cheie; testele setează `spring.ai.openai.api-key` la un substituent (`RecordedAdvisorConfig`) doar ca să apară ca „configurat”;
+- fluxul SSE cap-coadă (`AdvisorStreamingTest`): ordinea evenimentelor, salvarea răspunsului, consumul, eșecul din timpul fluxului, heartbeat, erori dinaintea fluxului, promptul ajuns la model; uneltele (`AdvisorToolsTest`): căutare cu carduri, profil actualizat cu valori curățate și eroare explicată modelului, lista scurtă a apelantului, comparare, plafonul de apeluri, metadatele. **Modelul este unul înregistrat** (`RecordedChatModel`, în `src/test`): înlocuiește `ChatModel`-ul OpenAI (inclusiv cereri de unelte, ca la un model real), deci tot restul drumului rulează ca în producție, fără rețea și fără cheie; testele setează `spring.ai.openai.api-key` la un substituent (`RecordedAdvisorConfig`) doar ca să apară ca „configurat”;
 - `@WebMvcTest` pentru statusul public și CORS, pornirea completă **fără** cheie OpenAI (inclusiv `503` la mesaj), profilul `prod` pe H2;
 - `OpenApiSnapshotTest`: `docs/architecture/openapi.json` trebuie să fie identic cu documentul generat (regenerare: `./mvnw test -Dtest=OpenApiSnapshotTest -Dopenapi.update=true`);
 - `ArchitectureTest` (ArchUnit): straturile din plan §2.2.

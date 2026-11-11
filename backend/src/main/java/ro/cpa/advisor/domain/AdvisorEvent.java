@@ -1,5 +1,8 @@
 package ro.cpa.advisor.domain;
 
+import java.time.LocalDate;
+import java.util.List;
+import java.util.Map;
 import java.util.UUID;
 
 /**
@@ -41,6 +44,34 @@ public sealed interface AdvisorEvent {
         @Override
         public String name() {
             return "done";
+        }
+    }
+
+    /** O unealta pornita sau terminata; `summary` este textul scurt pe care UI-ul il arata („Caut masini…”). */
+    record Tool(String toolName, String status, String summary) implements AdvisorEvent {
+
+        public static final String STARTED = "started";
+        public static final String FINISHED = "finished";
+
+        @Override
+        public String name() {
+            return "tool";
+        }
+    }
+
+    /** Carduri de vehicule gasite de o unealta, pe care UI-ul le arata in loc de tabele Markdown. */
+    record Vehicles(List<VehicleCard> cards, LocalDate dataAsOf) implements AdvisorEvent {
+        @Override
+        public String name() {
+            return "vehicles";
+        }
+    }
+
+    /** Campurile de profil schimbate de agent (panoul lateral se actualizeaza live); doar ce s-a schimbat, cu valorile curatate. */
+    record ProfileUpdated(Map<String, Object> patch) implements AdvisorEvent {
+        @Override
+        public String name() {
+            return "profile";
         }
     }
 

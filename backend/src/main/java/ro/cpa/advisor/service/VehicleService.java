@@ -10,6 +10,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import ro.cpa.advisor.domain.NotFoundException;
 import ro.cpa.advisor.domain.Vehicle;
+import ro.cpa.advisor.domain.VehicleCard;
 import ro.cpa.advisor.domain.VehicleCatalogue;
 import ro.cpa.advisor.domain.VehicleFilter;
 import ro.cpa.advisor.domain.VehicleVariant;
@@ -57,6 +58,23 @@ public class VehicleService {
         VehicleEntity vehicle = vehicles.findById(vehicleId).orElseThrow(() -> new NotFoundException("Vehicle not found."));
         List<VehicleVariant> found = variants.findByVehicleId(vehicleId).stream().map(VehicleVariantEntity::toDomain).toList();
         return vehicle.toDomain(sortedByPrice(found));
+    }
+
+    /** Toate variantele care trec filtrul, aplatizate in carduri, cele mai ieftine primele. */
+    @Transactional(readOnly = true)
+    public List<VehicleCard> searchCards(VehicleFilter filter) {
+        return search(filter).vehicles().stream()
+                .flatMap(vehicle -> vehicle.variants().stream().map(variant -> VehicleCard.of(vehicle, variant)))
+                .sorted(Comparator.comparingInt(VehicleCard::priceEur).thenComparing(VehicleCard::variantId))
+                .toList();
+    }
+
+    /** Cardurile variantelor cerute, in ordinea ceruta; id-urile necunoscute si dublurile lipsesc din rezultat. */
+    @Transactional(readOnly = true)
+    public List<VehicleCard> cards(List<String> variantIds) {
+        Map<String, VehicleCard> byId = searchCards(new VehicleFilter(null, null, null, null)).stream()
+                .collect(Collectors.toMap(VehicleCard::variantId, card -> card));
+        return variantIds.stream().distinct().map(byId::get).filter(Objects::nonNull).toList();
     }
 
     private static List<VehicleVariant> sortedByPrice(List<VehicleVariant> list) {

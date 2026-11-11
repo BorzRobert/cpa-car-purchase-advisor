@@ -1,7 +1,9 @@
 package ro.cpa.advisor.ai;
 
 import java.util.List;
+import java.util.UUID;
 import java.util.function.Consumer;
+import ro.cpa.advisor.domain.AdvisorEvent;
 import ro.cpa.advisor.domain.BuyerProfile;
 import ro.cpa.advisor.domain.Message;
 
@@ -13,14 +15,19 @@ import ro.cpa.advisor.domain.Message;
 public interface AdvisorModel {
 
     /**
-     * @param onToken primeste fiecare bucata de text; daca arunca {@link ro.cpa.advisor.domain.StreamClosedException},
-     *     apelul catre model se intrerupe si rezultatul are {@code aborted = true}
+     * Textul ajunge ca evenimente {@link AdvisorEvent.Token}; uneltele adauga `tool`, `vehicles`, `profile` in acelasi
+     * receptor. Primul eveniment pe care il arunca receptorul ca {@link ro.cpa.advisor.domain.StreamClosedException}
+     * (clientul a plecat) opreste apelul catre model, iar rezultatul are {@code aborted = true}.
+     *
      * @throws ro.cpa.advisor.domain.AdvisorUnavailableException daca apelul esueaza
      */
-    AdvisorOutcome stream(AdvisorRequest request, Consumer<String> onToken);
+    AdvisorOutcome stream(AdvisorRequest request, Consumer<AdvisorEvent> events);
 
-    /** Ce vede modelul: profilul si ultimele mesaje (fara cel nou) sunt date, mesajul nou este tura curenta. */
-    record AdvisorRequest(BuyerProfile profile, List<Message> history, String userMessage) {}
+    /**
+     * Ce vede modelul: profilul si ultimele mesaje (fara cel nou) sunt date, mesajul nou este tura curenta.
+     * `sessionId` nu intra in prompt: ajunge doar la unelte, ca sa lucreze pe datele sesiunii potrivite.
+     */
+    record AdvisorRequest(UUID sessionId, BuyerProfile profile, List<Message> history, String userMessage) {}
 
     /**
      * Rezultatul unui apel. Tokenii sunt cei raportati de furnizor; cand lipsesc (sau fluxul a fost intrerupt) sunt

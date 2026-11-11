@@ -4,10 +4,10 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.header;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
+import static ro.cpa.advisor.api.SseTestSupport.parse;
 
 import com.jayway.jsonpath.JsonPath;
 import java.time.Duration;
-import java.util.ArrayList;
 import java.util.List;
 import java.util.UUID;
 import org.junit.jupiter.api.BeforeEach;
@@ -21,6 +21,7 @@ import org.springframework.http.MediaType;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.request.MockMvcRequestBuilders;
+import ro.cpa.advisor.ai.AdvisorPrompt;
 import ro.cpa.advisor.ai.RecordedAdvisorConfig;
 import ro.cpa.advisor.ai.RecordedChatModel;
 import ro.cpa.advisor.ai.RecordedChatModel.Reply;
@@ -72,8 +73,8 @@ class AdvisorStreamingTest {
                 .andExpect(header().string("X-Accel-Buffering", "no"))
                 .andReturn().getResponse().getContentAsString();
 
-        List<Sse> events = parse(body);
-        assertThat(events).extracting(Sse::name).containsExactly("meta", "token", "token", "token", "done");
+        List<SseTestSupport.Sse> events = parse(body);
+        assertThat(events).extracting(SseTestSupport.Sse::name).containsExactly("meta", "token", "token", "token", "done");
         String messageId = JsonPath.read(events.get(0).data(), "$.messageId");
         assertThat(JsonPath.<String>read(events.get(0).data(), "$.conversationId")).isEqualTo(conversation);
         assertThat(events.subList(1, 4)).extracting(e -> JsonPath.<String>read(e.data(), "$.delta")).containsExactly("Buna! ", "Ai un buget ", "in minte?");
@@ -89,7 +90,7 @@ class AdvisorStreamingTest {
                 .andExpect(jsonPath("$.inputTokens").value(300))
                 .andExpect(jsonPath("$.outputTokens").value(40));
         String metadata = jdbc.queryForObject("select metadata from message where id = ?", String.class, UUID.fromString(messageId));
-        assertThat(JsonPath.<Integer>read(metadata, "$.promptVersion")).isEqualTo(1);
+        assertThat(JsonPath.<Integer>read(metadata, "$.promptVersion")).isEqualTo(AdvisorPrompt.VERSION);
         assertThat(JsonPath.<Boolean>read(metadata, "$.estimated")).isFalse();
         assertThat(metadata).doesNotContain("Buna!");
     }
@@ -113,8 +114,8 @@ class AdvisorStreamingTest {
 
         String body = send(token, conversation, "Salut").andExpect(status().isOk()).andReturn().getResponse().getContentAsString();
 
-        List<Sse> events = parse(body);
-        assertThat(events).extracting(Sse::name).containsExactly("meta", "error");
+        List<SseTestSupport.Sse> events = parse(body);
+        assertThat(events).extracting(SseTestSupport.Sse::name).containsExactly("meta", "error");
         assertThat(JsonPath.<String>read(events.get(1).data(), "$.code")).isEqualTo("advisor-unavailable");
         assertThat(JsonPath.<String>read(events.get(1).data(), "$.type")).isEqualTo("urn:cpa:problem:advisor-unavailable");
         assertThat(JsonPath.<Integer>read(events.get(1).data(), "$.status")).isEqualTo(502);
@@ -137,7 +138,7 @@ class AdvisorStreamingTest {
 
         assertThat(body).contains(": keep-alive\n\n");
         // Comentariile nu sunt evenimente: parserul le ignora, iar fluxul ramane meta, token..., done.
-        assertThat(parse(body)).extracting(Sse::name).containsExactly("meta", "token", "token", "token", "done");
+        assertThat(parse(body)).extracting(SseTestSupport.Sse::name).containsExactly("meta", "token", "token", "token", "done");
     }
 
     @Test
@@ -179,27 +180,6 @@ class AdvisorStreamingTest {
     }
 
     // ---------- ajutoare ----------
-
-    private record Sse(String name, String data) {}
-
-    private static List<Sse> parse(String body) {
-        List<Sse> events = new ArrayList<>();
-        for (String block : body.split("\n\n")) {
-            String name = null;
-            String data = null;
-            for (String line : block.split("\n")) {
-                if (line.startsWith("event: ")) {
-                    name = line.substring(7);
-                } else if (line.startsWith("data: ")) {
-                    data = line.substring(6);
-                }
-            }
-            if (name != null) {
-                events.add(new Sse(name, data));
-            }
-        }
-        return events;
-    }
 
     private org.springframework.test.web.servlet.ResultActions send(String token, String conversation, String content) throws Exception {
         return mvc.perform(MockMvcRequestBuilders.post("/api/v1/conversations/" + conversation + "/messages")
