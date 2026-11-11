@@ -2,7 +2,7 @@
 
 > Acest fișier este **sursa de adevăr** pentru ce construim. Orice schimbare de direcție se scrie AICI, nu doar în conversație. Planul de execuție pe faze, cu deciziile D1–D9, este în [`plan.md`](plan.md) (în engleză); deciziile au câte un ADR în [`adr/`](adr/).
 >
-> Ultima actualizare: 2026-11-11 · Faza curentă: **Faza 4 — domeniu, persistență și contract REST** (în lucru, pe branch-ul `cpa/phase-4-domain-rest`; Faza 3 — walking skeleton deploy — este livrată și în producție, cu o singură măsurătoare rămasă: durata cold start-ului, vezi [`render/README.md`](render/README.md#observat-pe-render))
+> Ultima actualizare: 2026-11-11 · Faza curentă: **Faza 5 — creierul consilierului** (în lucru, pe branch-ul `cpa/phase-5-advisor-brain`; sub-faza 5a — streaming LLM — este livrată; urmează 5b unelte, 5c scoring/TCO, 5d guardrails și evaluare). Faza 4 este integrată în `main`; Faza 3 este în producție, cu o singură măsurătoare rămasă: durata cold start-ului, vezi [`render/README.md`](render/README.md#observat-pe-render)
 
 ---
 
@@ -38,7 +38,9 @@ România/UE, prețuri în EUR (cu conversie în RON), interfața și `docs/` în
 
 Detaliile (diagrame, evenimente SSE, straturi) sunt în `plan.md` §2; backend-ul așa cum este construit acum e descris în [`architecture/backend.md`](architecture/backend.md), contractul frontend ↔ backend în [`architecture/communication.md`](architecture/communication.md) (cu instantaneul OpenAPI [`architecture/openapi.json`](architecture/openapi.json)), iar integrările în [`render/`](render/README.md), [`neon/`](neon/README.md) și [`vercel/`](vercel/README.md); restul ajunge în `docs/architecture/` pe măsură ce fazele se livrează.
 
-**Livrat în Faza 4 (REST fără model):** sesiuni anonime (`/sessions`, token hash-uit), profil, conversații și mesaje (fără răspuns de model), lista scurtă, catalogul de vehicule (14 modele / 21 de variante, cifre **orientative și neverificate**, „date la” 2026-11-11 — de revizuit și extins înainte de producție), consum și buget zilnic de tokeni, limite de rată (Bucket4j, per instanță) și de volum. Streaming-ul SSE și apelul către model vin în Faza 5.
+**Livrat în Faza 4 (REST fără model):** sesiuni anonime (`/sessions`, token hash-uit), profil, conversații și mesaje, lista scurtă, catalogul de vehicule (14 modele / 21 de variante, cifre **orientative și neverificate**, „date la” 2026-11-11 — de revizuit și extins înainte de producție), consum și buget zilnic de tokeni, limite de rată (Bucket4j, per instanță) și de volum.
+
+**Livrat în Faza 5a (streaming LLM):** `POST /conversations/{id}/messages` răspunde cu `text/event-stream` (evenimente `meta`, `token`, `done`, `error`; heartbeat), salvează răspunsul consilierului, înregistrează tokenii reali (sau estimați) și costul fiecărui răspuns în jurnal și în `message.metadata`, verifică bugetul înainte de apelul către model. Promptul de sistem este compus într-un singur loc (`ai.AdvisorPrompt`, versionat), iar profilul și mesajele utilizatorului intră ca date delimitate. Fără cheie OpenAI: `503 advisor-not-configured`. CI rulează cu un model înregistrat, fără cheie. Apelul real către model nu a fost încă verificat cu o cheie reală (pașii: [`openai/README.md`](openai/README.md#verificare)). Uneltele (5b), scoring/TCO (5c) și gardurile/evaluarea (5d) urmează.
 
 ---
 
@@ -50,8 +52,8 @@ Detaliile (diagrame, evenimente SSE, straturi) sunt în `plan.md` §2; backend-u
 | 1    | Frontend în `frontend/`, curățenie de bază, documentație de pornire                        | livrată     |
 | 2    | Schelet backend Spring Boot (straturi, ProblemDetail, CORS, OpenAPI, ArchUnit, Docker, CI) | livrată     |
 | 3    | Deploy „walking skeleton” (Render + Neon + Vercel): stare backend în UI, cold start, Flyway pe Postgres, `render.yaml`, CI frontend | livrată (cold start de măsurat) |
-| 4    | Domeniu, persistență, contract REST, sesiuni, limite                                       | în curs     |
-| 5    | Creierul consilierului: streaming, unelte, scoring/TCO, guardrails, evaluare               | planificată |
+| 4    | Domeniu, persistență, contract REST, sesiuni, limite                                       | livrată     |
+| 5    | Creierul consilierului: streaming (5a), unelte (5b), scoring/TCO (5c), guardrails/evaluare (5d) | în curs (5a livrată) |
 | 6    | Integrarea frontend-ului, ștergerea codului server vechi (AI SDK, Auth.js, `/api/*`)       | planificată |
 | 7    | Redesign și componente specifice (card vehicul, comparație, TCO, panou lateral)            | planificată |
 | 8    | Ghid în aplicație                                                                          | planificată |
@@ -71,7 +73,7 @@ Detaliile (diagrame, evenimente SSE, straturi) sunt în `plan.md` §2; backend-u
 - **Chei:** `OPENAI_API_KEY` există doar în mediul backend-ului; niciodată în browser, în URL, în loguri sau în repo. Fișierele `.env.example` conțin doar valori-substituent.
 - **Un singur model:** configurat într-o singură proprietate de backend (`cpa.llm.model`); fără selector de model în UI sau în cod. Valoarea implicită este `gpt-5.6-terra` ([ADR 0010](adr/0010-model-openai-inlocuitor-gpt-5-mini.md), acceptat la 2026-11-11): `gpt-5-mini` din D7 este deprecat, cu oprire la 2026-12-11. Detalii și prețuri în [`openai/README.md`](openai/README.md).
 - **Date și confidențialitate:** fără cont și fără date personale; token de sesiune stocat doar hash-uit (SHA-256); `DELETE /api/v1/sessions/current` („șterge-mi datele”) șterge în cascadă profilul, conversațiile și lista scurtă (contorii de consum rămân anonimi, ca să nu se poată reseta bugetul); jurnalele nu conțin date personale sau tokenuri. Textul din browser este curățat și limitat la intrare.
-- **Cost:** limită de rată pe sesiune și IP, buget zilnic de tokeni pe sesiune și global (întrerupătorul global este bugetul global), lungime maximă a mesajului (4000 de caractere), plafoane de volum (conversații, mesaje, lista scurtă) — toate implementate în Faza 4 și testate; `max_output_tokens` și contabilizarea reală a tokenilor vin cu apelul către model (Faza 5). Limitele de rată sunt în memorie, per instanță (o singură instanță pe planul Free); verificarea adresei IP în spatele proxy-ului Render rămâne de confirmat în Faza 9.
+- **Cost:** limită de rată pe sesiune și IP, buget zilnic de tokeni pe sesiune și global (întrerupătorul global este bugetul global), lungime maximă a mesajului (4000 de caractere), plafoane de volum (conversații, mesaje, lista scurtă) — toate implementate în Faza 4 și testate; din Faza 5a `max_completion_tokens` (`cpa.llm.max-output-tokens`) plafonează un răspuns, iar tokenii reali se înregistrează după fiecare răspuns. Limitele de rată sunt în memorie, per instanță (o singură instanță pe planul Free); verificarea adresei IP în spatele proxy-ului Render rămâne de confirmat în Faza 9.
 - **Corectitudine:** prețurile, specificațiile și costurile vin doar din unelte deterministe; răspunsurile le marchează ca orientative, cu data „date la”.
 - **Disponibilitate:** planul gratuit adoarme (Render după 15 minute fără trafic, ~1 minut pentru trezire + pornirea JVM; Neon după 5 minute, trezire în sute de ms); interfața pornește un ping la `/actuator/health` la încărcare și afișează „Se trezește consilierul…” în loc de eroare, reîncercând timp de ~2,5 minute. `/actuator/health` nu interoghează baza, ca să nu țină Neon treaz și să nu consume cota gratuită. Durata reală a cold start-ului este documentată în [`render/README.md`](render/README.md).
 - **Calitate:** build și teste verzi în CI pentru ambele servicii; formatare Prettier (frontend); straturile backend-ului verificate cu ArchUnit.

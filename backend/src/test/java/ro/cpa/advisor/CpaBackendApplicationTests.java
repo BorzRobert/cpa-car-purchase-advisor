@@ -3,13 +3,17 @@ package ro.cpa.advisor;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.hamcrest.Matchers.hasKey;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
+import com.jayway.jsonpath.JsonPath;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.boot.webmvc.test.autoconfigure.AutoConfigureMockMvc;
+import org.springframework.http.HttpHeaders;
+import org.springframework.http.MediaType;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.test.web.servlet.MockMvc;
 
@@ -42,6 +46,31 @@ class CpaBackendApplicationTests {
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.status").value("UP"))
                 .andExpect(jsonPath("$.advisorConfigured").value(false));
+    }
+
+    @Test
+    void withoutAKeyTheAdvisorAnswersATyped503AndStoresNothing() throws Exception {
+        String session = mockMvc.perform(post("/api/v1/sessions")).andReturn().getResponse().getContentAsString();
+        String auth = "Bearer " + JsonPath.read(session, "$.token");
+        String conversation = JsonPath.read(
+                mockMvc.perform(post("/api/v1/conversations").header(HttpHeaders.AUTHORIZATION, auth)).andReturn().getResponse().getContentAsString(),
+                "$.id");
+
+        mockMvc.perform(post("/api/v1/conversations/" + conversation + "/messages")
+                        .header(HttpHeaders.AUTHORIZATION, auth)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"content\":\"Salut\"}"))
+                .andExpect(status().isServiceUnavailable())
+                .andExpect(jsonPath("$.code").value("advisor-not-configured"));
+        // O cerere refuzata nu lasa nimic in urma: mesajul nu se salveaza fara cineva care sa raspunda.
+        mockMvc.perform(get("/api/v1/conversations/" + conversation + "/messages").header(HttpHeaders.AUTHORIZATION, auth))
+                .andExpect(jsonPath("$.length()").value(0));
+        // Erorile utilizatorului au prioritate fata de cheia lipsa.
+        mockMvc.perform(post("/api/v1/conversations/" + conversation + "/messages")
+                        .header(HttpHeaders.AUTHORIZATION, auth)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"content\":\"\\u200b\"}"))
+                .andExpect(status().isBadRequest());
     }
 
     @Test

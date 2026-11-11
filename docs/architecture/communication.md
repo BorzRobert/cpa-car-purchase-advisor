@@ -2,7 +2,7 @@
 
 Acest document este **contractul** dintre `frontend/` (Next.js, doar UI) și `backend/` (Spring Boot). Contractul formal, citibil de mașină, este documentul OpenAPI din [`openapi.json`](openapi.json); aici stau regulile pe care el nu le poate exprima (identitate, erori, limite, streaming). Dacă documentul și codul diferă, testul `OpenApiSnapshotTest` pică în CI.
 
-**Stadiul (Faza 4):** REST/JSON complet și testat. Endpoint-ul de streaming SSE (secțiunea de la final) este **specificat, dar încă neimplementat** — vine în Faza 5, odată cu apelul către model.
+**Stadiul (Faza 5a):** REST/JSON complet și testat, iar endpoint-ul de streaming SSE (secțiunea de la final) este **implementat** pentru evenimentele `meta`, `token`, `error` și `done`; `tool`, `vehicles`, `profile` vin în 5b și `compare` în 5c.
 
 ```mermaid
 sequenceDiagram
@@ -40,7 +40,7 @@ sequenceDiagram
 
 Fără date personale: sesiunea nu conține nimic în afară de id, hash și momente.
 
-## Endpoint-uri (Faza 4)
+## Endpoint-uri
 
 Toate cer `Authorization: Bearer` în afară de cele marcate „public”.
 
@@ -59,7 +59,7 @@ Toate cer `Authorization: Bearer` în afară de cele marcate „public”.
 | `PATCH /api/v1/conversations/{id}`               | Redenumește: `{title}`                                                                       | `200`, `400`, `404`                           |
 | `DELETE /api/v1/conversations/{id}`              | Șterge conversația cu mesajele ei                                                            | `204`, `404`                                  |
 | `GET /api/v1/conversations/{id}/messages`        | Mesajele, cele mai vechi primele                                                             | `200`, `404`                                  |
-| `POST /api/v1/conversations/{id}/messages`       | Salvează mesajul utilizatorului `{content}` (**fără model în Faza 4**)                       | `201`, `400`, `404`, `409`, `429 budget-exceeded` |
+| `POST /api/v1/conversations/{id}/messages`       | Salvează mesajul utilizatorului `{content}` și răspunde cu **`text/event-stream`**: răspunsul consilierului, în streaming (vezi „Streaming”) | `200` (flux), `400`, `404`, `409`, `429 budget-exceeded`, `503 advisor-not-configured` |
 | `GET /api/v1/shortlist`                          | Lista scurtă, cele mai noi primele; fiecare element are `vehicle` cu doar varianta salvată    | `200`                                         |
 | `POST /api/v1/shortlist`                         | Adaugă o variantă: `{variantId, note?}`                                                      | `201`, `404`, `409 already-in-shortlist` / `limit-reached` |
 | `DELETE /api/v1/shortlist/{id}`                  | Scoate un element (id-ul elementului, nu al variantei)                                       | `204`, `404`                                  |
@@ -67,7 +67,7 @@ Toate cer `Authorization: Bearer` în afară de cele marcate „public”.
 | `GET /api/v1/vehicles/{id}`                      | Un model cu toate variantele (slug, de exemplu `vw-golf`)                                    | `200`, `404`                                  |
 | `GET /api/v1/usage`                              | Consumul sesiunii pe ziua UTC curentă față de buget                                          | `200`                                         |
 
-Notă despre `POST …/messages`: în Faza 4 răspunde cu **JSON** (mesajul salvat). În Faza 5 același endpoint trece pe `text/event-stream` și adaugă răspunsul consilierului (vezi „Streaming”); este singura schimbare incompatibilă prevăzută, făcută înainte ca frontend-ul să-l folosească (Faza 6).
+Notă despre `POST …/messages`: până în Faza 4 răspundea cu **JSON** (mesajul salvat); din Faza 5a răspunde cu `text/event-stream`. A fost singura schimbare incompatibilă prevăzută, făcută înainte ca frontend-ul să-l folosească (Faza 6). Mesajele (al utilizatorului și al consilierului) se citesc oricând cu `GET …/messages`.
 
 Datele din catalog sunt **orientative**: UI-ul trebuie să afișeze `dataAsOf` („date la”) lângă orice preț.
 
@@ -101,7 +101,8 @@ Orice eroare este `application/problem+json` (RFC 9457), cu aceeași formă, ca 
 | `conflict`               | 409    | Cereri simultane au încălcat o constrângere unică                                             |
 | `rate-limited`           | 429    | Prea multe cereri (per sesiune, per IP sau prea multe sesiuni noi per IP); `Retry-After` în secunde |
 | `budget-exceeded`        | 429    | Bugetul zilnic de tokeni al sesiunii sau cel global este epuizat; `Retry-After` = până la miezul nopții UTC |
-| `advisor-not-configured` | 503    | Lipsește cheia OpenAI; aplicația funcționează, consilierul nu (devine activ în Faza 5)        |
+| `advisor-not-configured` | 503    | Lipsește cheia OpenAI; aplicația funcționează, consilierul nu. Verificat **după** toate celelalte (400, 404, 409, 429) și înainte de a salva mesajul |
+| `advisor-unavailable`    | (502)  | Apare **doar** ca eveniment SSE `error`, dacă apelul către model eșuează după începerea fluxului; mesajul nu conține detalii de la furnizor |
 | `internal-error`         | 500    | Orice neprevăzut                                                                              |
 
 ## Limite și buget
@@ -129,19 +130,36 @@ Cheia „per IP” este adresa clientului: în producție se ia din `X-Forwarded
 - **Faza 6:** frontend-ul generează `lib/api/schema.d.ts` din acest fișier cu `openapi-typescript`; tipurile nu se scriu de mână.
 - Swagger UI: butonul **Authorize** primește tokenul de la `POST /api/v1/sessions` și îl trimite pe fiecare cerere — așa se poate parcurge tot CRUD-ul local.
 
-## Streaming SSE (Faza 5 — specificație, încă neimplementat)
+## Streaming SSE (Faza 5a: `meta`, `token`, `error`, `done`)
 
-`POST /api/v1/conversations/{id}/messages` va răspunde cu `text/event-stream`, cu antetele `Cache-Control: no-cache` și `X-Accel-Buffering: no`, și un comentariu SSE de heartbeat la ~15 secunde, ca proxy-urile să nu închidă sau să nu buferizeze fluxul. `fetch` + `ReadableStream` (nu `EventSource`, care nu poate trimite POST sau antete); oprirea se face cu `AbortController`. Verificările din Faza 4 (proprietar, limită de mesaje, buget) rămân înainte de orice apel către model.
+`POST /api/v1/conversations/{id}/messages` răspunde cu `text/event-stream;charset=UTF-8`, cu antetele `Cache-Control: no-cache` și `X-Accel-Buffering: no`, și un comentariu SSE de heartbeat (`: keep-alive`) la ~15 secunde (`cpa.stream.heartbeat-seconds`), ca proxy-urile să nu închidă sau să nu buferizeze fluxul. Clientul folosește `fetch` + `ReadableStream` (nu `EventSource`, care nu poate trimite POST sau antete) și poate trimite `Accept: text/event-stream, application/problem+json`; oprirea se face cu `AbortController`: serverul oprește apelul către model, iar consumul răspunsului parțial se înregistrează estimat. Verificările (proprietar, buget, text, limită de mesaje, cheie) rămân înainte de orice apel către model.
 
-| Eveniment  | Conținut                                                  | Rol                                              |
-| ---------- | --------------------------------------------------------- | ------------------------------------------------ |
-| `meta`     | `{messageId, conversationId}`                             | Începutul răspunsului                            |
-| `token`    | `{delta}`                                                 | Text în streaming                                |
-| `tool`     | `{name, status: started\|finished, summary}`              | „Se calculează costul total…” în UI              |
-| `vehicles` | `{cards: VehicleCard[]}`                                  | Carduri în loc de tabele Markdown                |
-| `compare`  | `{vehicles, criteria, scores}`                            | Widget de comparație                             |
-| `profile`  | `{patch}`                                                 | Profil actualizat de agent (panoul lateral)      |
-| `error`    | `ProblemDetail` (aceeași formă ca mai sus)                | Eroare în mijlocul fluxului                      |
-| `done`     | `{usage: {input, output}}`                                | Sfârșitul fluxului; backend-ul a înregistrat consumul |
+Un cadru arată așa (fiecare `data:` este o singură linie JSON):
 
-Eroarea dinaintea fluxului (401, 404, 429 etc.) este un răspuns HTTP obișnuit `problem+json`; doar o eroare apărută după începerea fluxului ajunge ca eveniment `error`.
+```text
+event: meta
+data: {"messageId":"…","conversationId":"…"}
+
+event: token
+data: {"delta":"Salut! "}
+
+: keep-alive
+
+event: done
+data: {"usage":{"input":1523,"output":212}}
+```
+
+Ordinea este mereu `meta`, apoi zero sau mai multe `token`, apoi **fie** `done`, **fie** `error`. `messageId` din `meta` este id-ul sub care răspunsul apare în `GET …/messages`. Dacă ultimul eveniment nu este `done` sau `error` (conexiune întreruptă), UI-ul tratează răspunsul ca incomplet.
+
+| Eveniment  | Conținut                                                  | Rol                                              | Stare      |
+| ---------- | --------------------------------------------------------- | ------------------------------------------------ | ---------- |
+| `meta`     | `{messageId, conversationId}`                             | Începutul răspunsului                            | 5a         |
+| `token`    | `{delta}`                                                 | Text în streaming                                | 5a         |
+| `tool`     | `{name, status: started\|finished, summary}`              | „Se calculează costul total…” în UI              | 5b         |
+| `vehicles` | `{cards: VehicleCard[]}`                                  | Carduri în loc de tabele Markdown                | 5b         |
+| `compare`  | `{vehicles, criteria, scores}`                            | Widget de comparație                             | 5c         |
+| `profile`  | `{patch}`                                                 | Profil actualizat de agent (panoul lateral)      | 5b         |
+| `error`    | `ProblemDetail` (aceeași formă ca mai sus; `code: advisor-unavailable`) | Eroare în mijlocul fluxului        | 5a         |
+| `done`     | `{usage: {input, output}}`                                | Sfârșitul fluxului; backend-ul a înregistrat consumul | 5a    |
+
+Eroarea dinaintea fluxului (401, 404, 429 etc.) este un răspuns HTTP obișnuit `problem+json`; doar o eroare apărută după începerea fluxului ajunge ca eveniment `error` (statusul HTTP este deja `200`). Mesajul utilizatorului rămâne salvat și când răspunsul eșuează, dar nu se salvează un răspuns gol.

@@ -4,7 +4,7 @@
 
 OpenAI este singurul furnizor de model al consilierului CPA. Backend-ul Java (Spring AI) este singurul loc care îl apelează, cu **un singur model** configurat într-o singură proprietate (`cpa.llm.model`, [ADR 0007](../adr/0007-model-openai.md)). Fără cheie aplicația pornește, dar consilierul răspunde `503` cu tipul `advisor-not-configured`, iar `GET /api/v1/health` raportează `advisorConfigured: false`.
 
-A intrat în **Faza 2** (dependența și configurația, fără apeluri reale); apelurile către model apar în Faza 5.
+A intrat în **Faza 2** (dependența și configurația); primul apel real către model este în **Faza 5a** (`POST /api/v1/conversations/{id}/messages`, în streaming). CI nu are cheie: testele folosesc un model înregistrat (`RecordedChatModel`), deci verificarea cu modelul real este manuală (vezi „Verificare”).
 
 > Vechea integrare din frontend (`OPENAI_API_KEY` în `frontend/.env.example`, `src/lib/providers.server.ts`) aparține aplicației SkillForge și se șterge în Faza 6. Cheia nu are ce căuta în frontend.
 
@@ -64,4 +64,15 @@ cd backend
 curl http://localhost:8080/api/v1/health
 ```
 
-Fără cheie: `{"status":"UP","service":"cpa-backend","version":"...","advisorConfigured":false}`. Cu cheia reală în `backend/.env`: `advisorConfigured` devine `true` (valoarea cheii nu apare niciodată în răspuns). Apelul real către model se verifică de la Faza 5.
+Fără cheie: `{"status":"UP","service":"cpa-backend","version":"...","advisorConfigured":false}`, iar `POST …/messages` răspunde `503 advisor-not-configured`. Cu cheia reală în `backend/.env`: `advisorConfigured` devine `true` (valoarea cheii nu apare niciodată în răspuns).
+
+**Apelul real către model** (manual, o dată, cu cheia ta; CI nu are cheie). Cu backend-ul pornit și cheia în `backend/.env`:
+
+```bash
+TOKEN=$(curl -s -X POST http://localhost:8080/api/v1/sessions | sed -E 's/.*"token":"([^"]+)".*/\1/')
+CONV=$(curl -s -X POST -H "Authorization: Bearer $TOKEN" http://localhost:8080/api/v1/conversations | sed -E 's/.*"id":"([^"]+)".*/\1/')
+curl -N -X POST -H "Authorization: Bearer $TOKEN" -H "Content-Type: application/json" -H "Accept: text/event-stream" \
+  -d '{"content":"Salut! Caut o masina pentru oras."}' http://localhost:8080/api/v1/conversations/$CONV/messages
+```
+
+Rezultat așteptat: evenimente `meta`, apoi `token` (text în română care apare treptat), apoi `done` cu `usage` nenul; în jurnalul backend-ului apare o linie `Advisor answer: model=gpt-5.6-terra … inputTokens=… outputTokens=… costUsd=…` cu `estimated=false`. Dacă în loc de asta apare `event: error`, cauza exactă nu este în răspuns (intenționat): vezi jurnalul (`Model call failed: <tip de excepție>`). Aceasta este și verificarea ipotezelor din [ADR 0010](../adr/0010-model-openai-inlocuitor-gpt-5-mini.md): `gpt-5.6-terra` prin Chat Completions, cu `max_completion_tokens` și raportarea consumului în flux.

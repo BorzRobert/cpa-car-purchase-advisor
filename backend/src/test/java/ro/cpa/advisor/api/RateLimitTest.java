@@ -7,21 +7,24 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 import org.junit.jupiter.api.Test;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.boot.webmvc.test.autoconfigure.AutoConfigureMockMvc;
+import org.springframework.context.annotation.Import;
 import org.springframework.http.HttpHeaders;
+import ro.cpa.advisor.ai.RecordedAdvisorConfig;
 
 /** Limitele de rata si de volum, coborate ca sa fie usor de atins (baza H2 proprie, ca testele sa nu se influenteze). */
 @SpringBootTest(
         properties = {
-            "spring.ai.openai.api-key=",
+            RecordedAdvisorConfig.TEST_KEY,
             "spring.datasource.url=jdbc:h2:mem:rate-limits;MODE=PostgreSQL;DB_CLOSE_DELAY=-1",
             "cpa.limits.requests-per-minute-per-session=5",
             "cpa.limits.requests-per-minute-per-ip=1000",
             "cpa.limits.sessions-per-hour-per-ip=2",
             "cpa.limits.max-conversations-per-session=2",
-            "cpa.limits.max-messages-per-conversation=2",
+            "cpa.limits.max-messages-per-conversation=3",
             "cpa.limits.max-shortlist-items=1"
         })
 @AutoConfigureMockMvc
+@Import(RecordedAdvisorConfig.class)
 class RateLimitTest extends LimitsTestSupport {
 
     @Test
@@ -64,10 +67,11 @@ class RateLimitTest extends LimitsTestSupport {
                 .andExpect(jsonPath("$.code").value("limit-reached"));
 
         // Alta sesiune, ca limita de rata (5/minut) sa nu intervina.
+        // Fiecare schimb adauga doua mesaje (utilizator + raspuns): limita de 3 permite doua schimburi, nu trei.
         String token2 = sessionToken("10.3.0.2");
         String messages = "/api/v1/conversations/" + createConversation(token2, "10.3.0.2") + "/messages";
-        post(token2, "10.3.0.2", messages, "{\"content\":\"1\"}").andExpect(status().isCreated());
-        post(token2, "10.3.0.2", messages, "{\"content\":\"2\"}").andExpect(status().isCreated());
+        post(token2, "10.3.0.2", messages, "{\"content\":\"1\"}").andExpect(status().isOk());
+        post(token2, "10.3.0.2", messages, "{\"content\":\"2\"}").andExpect(status().isOk());
         post(token2, "10.3.0.2", messages, "{\"content\":\"3\"}")
                 .andExpect(status().isConflict())
                 .andExpect(jsonPath("$.code").value("limit-reached"));

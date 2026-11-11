@@ -10,8 +10,10 @@ import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.boot.webmvc.test.autoconfigure.AutoConfigureMockMvc;
+import org.springframework.context.annotation.Import;
 import org.springframework.http.HttpHeaders;
 import org.springframework.jdbc.core.JdbcTemplate;
+import ro.cpa.advisor.ai.RecordedAdvisorConfig;
 import ro.cpa.advisor.domain.SessionToken;
 import ro.cpa.advisor.service.UsageService;
 
@@ -21,7 +23,7 @@ import ro.cpa.advisor.service.UsageService;
  */
 @SpringBootTest(
         properties = {
-            "spring.ai.openai.api-key=",
+            RecordedAdvisorConfig.TEST_KEY,
             "spring.datasource.url=jdbc:h2:mem:budgets;MODE=PostgreSQL;DB_CLOSE_DELAY=-1",
             "cpa.limits.requests-per-minute-per-session=100000",
             "cpa.limits.requests-per-minute-per-ip=100000",
@@ -30,6 +32,7 @@ import ro.cpa.advisor.service.UsageService;
             "cpa.limits.daily-token-budget-global=2500"
         })
 @AutoConfigureMockMvc
+@Import(RecordedAdvisorConfig.class)
 class DailyBudgetTest extends LimitsTestSupport {
 
     @Autowired
@@ -43,7 +46,7 @@ class DailyBudgetTest extends LimitsTestSupport {
         // 1) Bugetul sesiunii (1000 de tokeni).
         String token = sessionToken("10.5.0.1");
         String messages = "/api/v1/conversations/" + createConversation(token, "10.5.0.1") + "/messages";
-        post(token, "10.5.0.1", messages, "{\"content\":\"inainte de buget\"}").andExpect(status().isCreated());
+        post(token, "10.5.0.1", messages, "{\"content\":\"inainte de buget\"}").andExpect(status().isOk());
 
         usage.record(sessionId(token), "test-model", 700, 300);
         post(token, "10.5.0.1", messages, "{\"content\":\"dupa buget\"}")

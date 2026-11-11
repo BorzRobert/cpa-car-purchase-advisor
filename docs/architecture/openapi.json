@@ -544,7 +544,7 @@
         "tags" : [ "Messages" ]
       },
       "post" : {
-        "description" : "Stores the message (no model call yet). Refused with 429 when the daily token budget is used up.",
+        "description" : "Stores the user message, then streams the answer as Server-Sent Events (`text/event-stream`):\n`meta` {messageId, conversationId}, then `token` {delta} repeatedly, then `done` {usage: {input, output}};\n`error` (same shape as a problem response) replaces `done` when the answer fails after the stream began.\nA comment line is sent every ~15 s as a heartbeat. Everything that can be checked up front (401, 404,\n400, 409, 429, 503) is a regular `application/problem+json` response before the stream starts.\nCall it with `fetch` and read the body as a stream; `EventSource` cannot send POST or headers.\n",
         "operationId" : "post",
         "parameters" : [ {
           "in" : "path",
@@ -566,18 +566,18 @@
           "required" : true
         },
         "responses" : {
-          "201" : {
+          "200" : {
             "content" : {
-              "application/json" : {
+              "text/event-stream" : {
                 "schema" : {
-                  "$ref" : "#/components/schemas/Message"
+                  "type" : "string"
                 }
               }
             },
-            "description" : "Created"
+            "description" : "The event stream."
           }
         },
-        "summary" : "Post a user message",
+        "summary" : "Send a message and stream the advisor's answer",
         "tags" : [ "Messages" ]
       }
     },

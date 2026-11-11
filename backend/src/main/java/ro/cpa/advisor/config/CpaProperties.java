@@ -16,10 +16,22 @@ import org.springframework.validation.annotation.Validated;
  */
 @Validated
 @ConfigurationProperties("cpa")
-public record CpaProperties(@NotNull @Valid Llm llm, @NotNull @Valid Cors cors, @NotNull @Valid Limits limits) {
+public record CpaProperties(
+        @NotNull @Valid Llm llm, @NotNull @Valid Cors cors, @NotNull @Valid Limits limits, @NotNull @Valid Stream stream) {
 
-    /** Modelul OpenAI folosit de consilier: o singura valoare, fara selector (ADR 0007). */
-    public record Llm(@NotBlank String model) {}
+    /**
+     * Modelul OpenAI folosit de consilier: o singura valoare, fara selector (ADR 0007, modelul din ADR 0010). Preturile
+     * (USD per milion de tokeni) servesc doar jurnalului „cost per raspuns”; bugetul se numara in tokeni, nu in bani.
+     */
+    public record Llm(
+            @NotBlank String model,
+            @Positive int maxOutputTokens,
+            @Positive int historyMessages,
+            @PositiveOrZero double inputUsdPerMillion,
+            @PositiveOrZero double outputUsdPerMillion) {}
+
+    /** Parametrii fluxului SSE; `heartbeatSeconds` tine proxy-urile sa nu inchida o conexiune care tace in timpul modelului. */
+    public record Stream(@Positive int heartbeatSeconds) {}
 
     /**
      * Protectia unui endpoint public: limite de rata (in memorie, per instanta), de volum per sesiune si bugetul zilnic

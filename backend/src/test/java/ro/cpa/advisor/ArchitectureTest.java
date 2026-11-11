@@ -15,7 +15,7 @@ import com.tngtech.archunit.lang.ArchRule;
 @AnalyzeClasses(packages = "ro.cpa.advisor", importOptions = ImportOption.DoNotIncludeTests.class)
 class ArchitectureTest {
 
-    // Straturile raman optionale: un strat fara clase inca (de exemplu `ai`, pana in Faza 5) nu trebuie sa pice testul.
+    // Straturile raman optionale: un strat fara clase (de exemplu `repository` intr-un test partial) nu trebuie sa pice testul.
     @ArchTest
     static final ArchRule layersAreRespected = layeredArchitecture()
             .consideringOnlyDependenciesInLayers()
@@ -38,4 +38,10 @@ class ArchitectureTest {
     static final ArchRule controllersNeverTouchRepositoriesOrSpringAi = noClasses()
             .that().resideInAPackage("ro.cpa.advisor.api..")
             .should().dependOnClassesThat().resideInAnyPackage("ro.cpa.advisor.repository..", "org.springframework.ai..");
+
+    // Spring AI trebuie sa ramana in spatele lui `AdvisorModel`: schimbarea bibliotecii sau a modelului atinge un singur pachet.
+    @ArchTest
+    static final ArchRule springAiLivesOnlyInTheAiPackage = noClasses()
+            .that().resideOutsideOfPackage("ro.cpa.advisor.ai..")
+            .should().dependOnClassesThat().resideInAPackage("org.springframework.ai..");
 }

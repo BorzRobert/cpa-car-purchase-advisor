@@ -28,16 +28,25 @@ public class MessageEntity {
     @Column(nullable = false, length = 20000)
     private String content;
 
+    // JSON ca text (model, versiunea promptului, tokeni, cost); doar la raspunsurile consilierului.
+    @Column(length = 20000)
+    private String metadata;
+
     @Column(name = "created_at", nullable = false)
     private Instant createdAt;
 
     protected MessageEntity() {}
 
     public MessageEntity(UUID id, UUID conversationId, MessageRole role, String content, Instant now) {
+        this(id, conversationId, role, content, null, now);
+    }
+
+    public MessageEntity(UUID id, UUID conversationId, MessageRole role, String content, String metadata, Instant now) {
         this.id = id;
         this.conversationId = conversationId;
         this.role = role;
         this.content = content;
+        this.metadata = metadata;
         this.createdAt = now;
     }
 

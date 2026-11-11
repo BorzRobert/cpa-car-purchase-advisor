@@ -16,12 +16,14 @@ import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.boot.webmvc.test.autoconfigure.AutoConfigureMockMvc;
+import org.springframework.context.annotation.Import;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.MediaType;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.ResultActions;
 import org.springframework.test.web.servlet.request.MockMvcRequestBuilders;
+import ro.cpa.advisor.ai.RecordedAdvisorConfig;
 import ro.cpa.advisor.domain.SessionToken;
 import ro.cpa.advisor.service.UsageService;
 
@@ -31,12 +33,13 @@ import ro.cpa.advisor.service.UsageService;
  */
 @SpringBootTest(
         properties = {
-            "spring.ai.openai.api-key=",
+            RecordedAdvisorConfig.TEST_KEY,
             "cpa.limits.requests-per-minute-per-session=100000",
             "cpa.limits.requests-per-minute-per-ip=100000",
             "cpa.limits.sessions-per-hour-per-ip=100000"
         })
 @AutoConfigureMockMvc
+@Import(RecordedAdvisorConfig.class)
 class ApiContractTest {
 
     @Autowired
@@ -88,7 +91,7 @@ class ApiContractTest {
     void deletingMyDataRemovesEverythingAndInvalidatesTheToken() throws Exception {
         String token = newSession();
         String conversationId = createConversation(token, "Salut");
-        post(token, "/api/v1/conversations/" + conversationId + "/messages", "{\"content\":\"buna\"}").andExpect(status().isCreated());
+        post(token, "/api/v1/conversations/" + conversationId + "/messages", "{\"content\":\"buna\"}").andExpect(status().isOk());
         post(token, "/api/v1/shortlist", "{\"variantId\":\"golf-1-5-tsi-130\"}").andExpect(status().isCreated());
         put(token, "/api/v1/profile", "{\"passengers\":4}").andExpect(status().isOk());
 
@@ -159,19 +162,21 @@ class ApiContractTest {
         String id = createConversation(token, null);
 
         post(token, "/api/v1/conversations/" + id + "/messages", "{\"content\":\"  Caut o masina\\n pentru oras  \"}")
-                .andExpect(status().isCreated())
-                .andExpect(jsonPath("$.role").value("USER"))
-                .andExpect(jsonPath("$.content").value("Caut o masina\n pentru oras"))
-                .andExpect(jsonPath("$.conversationId").value(id));
-        post(token, "/api/v1/conversations/" + id + "/messages", "{\"content\":\"al doilea\"}").andExpect(status().isCreated());
+                .andExpect(status().isOk())
+                .andExpect(header().string(HttpHeaders.CONTENT_TYPE, "text/event-stream;charset=UTF-8"));
+        post(token, "/api/v1/conversations/" + id + "/messages", "{\"content\":\"al doilea\"}").andExpect(status().isOk());
 
         get(token, "/api/v1/conversations/" + id)
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.title").value("Caut o masina pentru oras"));
+        // Fiecare schimb lasa doua mesaje: al utilizatorului (curatat) si raspunsul consilierului.
         get(token, "/api/v1/conversations/" + id + "/messages")
-                .andExpect(jsonPath("$", hasSize(2)))
+                .andExpect(jsonPath("$", hasSize(4)))
+                .andExpect(jsonPath("$[0].role").value("USER"))
                 .andExpect(jsonPath("$[0].content").value("Caut o masina\n pentru oras"))
-                .andExpect(jsonPath("$[1].content").value("al doilea"));
+                .andExpect(jsonPath("$[0].conversationId").value(id))
+                .andExpect(jsonPath("$[1].role").value("ASSISTANT"))
+                .andExpect(jsonPath("$[2].content").value("al doilea"));
 
         patch(token, "/api/v1/conversations/" + id, "{\"title\":\"Masina de oras\"}")
                 .andExpect(status().isOk())

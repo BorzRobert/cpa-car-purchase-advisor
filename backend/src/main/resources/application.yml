@@ -31,6 +31,16 @@ cpa:
   llm:
     # Implicit gpt-5.6-terra (ADR 0010): inlocuieste gpt-5-mini, oprit la 2026-12-11.
     model: ${CPA_LLM_MODEL:gpt-5.6-terra}
+    # Plafonul tokenilor generati intr-un raspuns (la modelele cu rationament include si tokenii de rationament).
+    max-output-tokens: 4000
+    # Cate mesaje recente intra in prompt; restul conversatiei ramane in baza de date, nu in factura.
+    history-messages: 20
+    # USD per milion de tokeni, doar pentru jurnalul „cost per raspuns” (preturile gpt-5.6-terra, verificate 2026-11-11).
+    input-usd-per-million: 2.0
+    output-usd-per-million: 12.0
+  stream:
+    # Un comentariu SSE la fiecare 15 s, ca proxy-urile sa nu inchida un flux care tace in timp ce modelul gandeste.
+    heartbeat-seconds: 15
   cors:
     # Lista separata prin virgule; niciodata `*` (verificat la pornire).
     allowed-origins: ${CORS_ALLOWED_ORIGINS:http://localhost:3000}
@@ -43,7 +53,7 @@ cpa:
     max-conversations-per-session: 50
     max-messages-per-conversation: 200
     max-shortlist-items: 20
-    # Bugete in tokeni (intrare + iesire) pe zi UTC; contabilizarea reala vine odata cu apelul catre model (Faza 5).
+    # Bugete in tokeni (intrare + iesire) pe zi UTC; consumul real al fiecarui raspuns al modelului se inregistreaza dupa apel.
     daily-token-budget-per-session: 60000
     daily-token-budget-global: 1000000
     # Cate proxy-uri de incredere sunt intre internet si aplicatie: 0 = adresa conexiunii (local);
@@ -64,6 +74,10 @@ springdoc:
     path: /v3/api-docs
 
 logging:
+  level:
+    # Spring AI loga exceptia intreaga (cu mesajul furnizorului) cand un flux esueaza; mesajele OpenAI pot contine
+    # fragmente de cheie. Eroarea ajunge oricum la noi, ca AdvisorUnavailableException, iar in jurnal intra doar tipul ei.
+    org.springframework.ai.chat.model.MessageAggregator: "OFF"
   pattern:
     # Id-ul cererii apare in fiecare linie de log, ca sa poti lega un raspuns de eroare de jurnal.
     correlation: "[%X{requestId:-}] "
