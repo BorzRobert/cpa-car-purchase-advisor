@@ -8,12 +8,12 @@ Acest document este **contractul** dintre `frontend/` (Next.js, doar UI) și `ba
 sequenceDiagram
     participant UI as Frontend (Next.js)
     participant API as Backend (Spring Boot)
-    UI->>API: GET /actuator/health (la încărcare; trezește backend-ul)
+    UI->>API: GET /actuator/health (la încărcare, trezește backend-ul)
     UI->>API: POST /api/v1/sessions
     API-->>UI: 201 {token, createdAt}  (tokenul apare o singură dată)
     Note over UI: token în localStorage (cpa-app)
     UI->>API: GET/PUT/POST/DELETE ... + Authorization: Bearer token
-    API->>API: IP limit → autentificare → limită pe sesiune → validare → serviciu
+    API->>API: citire token → limită IP + sesiune → verificare acces (401) → validare → serviciu
     API-->>UI: JSON sau application/problem+json
 ```
 
