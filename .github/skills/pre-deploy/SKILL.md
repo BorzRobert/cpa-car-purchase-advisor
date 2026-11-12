@@ -21,7 +21,7 @@ Rulează această listă înainte de fiecare publicare. Comenzile npm se ruleaz�
 2. Dacă ai atins `backend/Dockerfile` sau `pom.xml`, rulează `docker build backend` (CI face același lucru).
 3. Verifică `render.yaml`: nicio valoare secretă (doar `sync: false` pentru parola bazei, URL-ul bazei, `OPENAI_API_KEY`, `CORS_ALLOWED_ORIGINS`, `CPA_LLM_MODEL`) și că orice variabilă nouă din cod apare și în `backend/.env.example` și în `docs/<integrare>/README.md`.
 4. În Render → serviciul `cpa-backend` → Environment: există toate variabilele din `render.yaml` (`SPRING_PROFILES_ACTIVE=prod`, `SPRING_DATASOURCE_URL` în format JDBC cu `?sslmode=require`, `SPRING_DATASOURCE_USERNAME`, `SPRING_DATASOURCE_PASSWORD`, `CORS_ALLOWED_ORIGINS`, `OPENAI_API_KEY`, `CPA_LLM_MODEL`). `CORS_ALLOWED_ORIGINS` conține exact originea de producție a frontend-ului (și, dacă testezi un branch, aliasul lui stabil) — fără `*`.
-5. `OPENAI_API_KEY` este substituentul `your_openai_api_key` până în Faza 5/9; o cheie reală se pune doar în dashboard, niciodată în repo, și cere limită lunară setată în contul OpenAI.
+5. `OPENAI_API_KEY` este cheia reală, pusă doar în dashboard, niciodată în repo; contul OpenAI trebuie să aibă o limită lunară setată.
 6. Verifică sănătatea după deploy (înlocuiește `<URL-backend>`):
    - `curl <URL-backend>/actuator/health` → `status: UP`;
    - `curl <URL-backend>/api/v1/health` → `status: UP`, `advisorConfigured` corespunde cheii (nu apare niciodată valoarea ei);

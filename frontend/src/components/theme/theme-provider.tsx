@@ -39,7 +39,7 @@ const ThemeContext = createContext<ThemeContextValue | undefined>(undefined);
  * DE CE o funcție pură, exportată: e singura regulă de decizie a temei, deci trebuie să fie
  * citibilă separat de efectele React.
  */
-export function resolveTheme(preference: ThemePreference, systemPrefersDark: boolean): ResolvedTheme {
+function resolveTheme(preference: ThemePreference, systemPrefersDark: boolean): ResolvedTheme {
   if (preference === "sistem") return systemPrefersDark ? "dark" : "light";
   return preference;
 }

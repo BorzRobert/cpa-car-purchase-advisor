@@ -14,6 +14,7 @@ import { GuideBlockGlossary } from "@/components/guide/guide-block-glossary";
 import { GuideBlockPrompts } from "@/components/guide/guide-block-prompts";
 import { GuideBlockText } from "@/components/guide/guide-block-text";
 import { useGuideShortcut } from "@/hooks/use-guide-shortcut";
+import { useIsMobile } from "@/hooks/use-mobile";
 import { GUIDE_SECTIONS, type GuideBlock } from "@/lib/guide";
 import { useAppStore } from "@/store/useAppStore";
 
@@ -27,6 +28,7 @@ const BLOCK_RENDERERS: Record<GuideBlock["kind"], (props: { block: GuideBlock })
 export function GuideDialog() {
   const open = useAppStore(state => state.guideOpen);
   const setOpen = useAppStore(state => state.setGuideOpen);
+  const isMobile = useIsMobile();
   useGuideShortcut();
 
   return (
@@ -40,11 +42,20 @@ export function GuideDialog() {
           </DialogDescription>
         </DialogHeader>
 
-        <Tabs defaultValue={GUIDE_SECTIONS[0].id} className="min-h-0 flex-1">
-          {/* Pe ecran îngust filele se derulează pe orizontală; `h-auto` lasă etichetele să-și ia înălțimea firească. */}
-          <TabsList className="h-auto w-full justify-start overflow-x-auto">
+        {/* DE CE două așezări: pe ecran lat, filele stau într-o coloană lângă conținut (șapte file nu încap pe un rând);
+            pe telefon stau într-o grilă cu două coloane, deci toate se văd fără derulare orizontală. */}
+        <Tabs
+          defaultValue={GUIDE_SECTIONS[0].id}
+          orientation={isMobile ? "horizontal" : "vertical"}
+          className="min-h-0 flex-1 gap-3"
+        >
+          <TabsList className="grid h-auto w-full grid-cols-2 gap-1 group-data-horizontal/tabs:h-auto md:flex md:w-52 md:shrink-0 md:self-start">
             {GUIDE_SECTIONS.map(section => (
-              <TabsTrigger key={section.id} value={section.id} className="flex-none px-2.5 py-1.5">
+              <TabsTrigger
+                key={section.id}
+                value={section.id}
+                className="h-auto justify-start px-2.5 py-1.5 text-left whitespace-normal"
+              >
                 <section.icon />
                 {section.label}
               </TabsTrigger>
@@ -52,7 +63,7 @@ export function GuideDialog() {
           </TabsList>
 
           {GUIDE_SECTIONS.map(section => (
-            <TabsContent key={section.id} value={section.id} className="min-h-0 overflow-y-auto pr-1">
+            <TabsContent key={section.id} value={section.id} className="min-h-0 min-w-0 overflow-y-auto pr-1">
               <div className="flex flex-col gap-5 py-2">
                 {section.blocks.map(block => {
                   const Renderer = BLOCK_RENDERERS[block.kind];

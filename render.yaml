@@ -34,10 +34,9 @@ services:
       # Originile browserului permise, separate prin virgula, fara `*`: URL-ul Vercel de productie (+ un alias stabil).
       - key: CORS_ALLOWED_ORIGINS
         sync: false
-      # Substituent pana in Faza 5: fara cheie reala consilierul raspunde 503, dar aplicatia porneste. Cheia reala se
-      # pune DOAR aici, in dashboard, in Faza 9 — niciodata in repo.
+      # Cheia reala se pune DOAR aici, in dashboard — niciodata in repo. Fara ea consilierul raspunde 503.
       - key: OPENAI_API_KEY
         sync: false
-      # Singurul model (ADR 0007). Se completeaza in dashboard; valoarea finala se confirma inainte de Faza 5.
+      # Singurul model (ADR 0007, ADR 0010). Se completeaza in dashboard.
       - key: CPA_LLM_MODEL
         sync: false
