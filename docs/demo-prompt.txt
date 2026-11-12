@@ -1,5 +1,5 @@
 DEMO CPA — scenariu de prezentare (4 mesaje)
-=============================================
+==============================================
 
 Verificat pe producție la 2026-11-12 (backend Render + model real), de două ori, cu același rezultat:
 toate cele 4 mesaje au primit răspuns complet, cu uneltele indicate mai jos.
