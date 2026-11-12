@@ -43,7 +43,7 @@ NEXT_PUBLIC_API_BASE_URL="http://localhost:8080"
 
 **Atenție:** valoarea este „coaptă" în JavaScript la `next build` (nu se citește la rulare), deci **după orice modificare e nevoie de Redeploy**. Este publică prin definiție: nu pune niciodată o cheie sau un secret într-o variabilă `NEXT_PUBLIC_*`.
 
-Cheile de LLM nu au loc în Vercel: `OPENAI_API_KEY` există doar pe backend (Render), iar Next.js nu are Route Handlers și nu apelează niciun model. Dacă mai există în Vercel variabile din aplicația veche (`ANTHROPIC_API_KEY`, `OPENAI_API_KEY`, `AUTH_*`), pot fi șterse: codul nu le mai citește.
+Cheile de LLM nu au loc în Vercel: `OPENAI_API_KEY` există doar pe backend (Render), iar Next.js nu are Route Handlers și nu apelează niciun model. Dacă mai există în Vercel variabile din aplicația veche (chei de LLM sau `AUTH_*`), pot fi șterse: codul nu le mai citește.
 
 CORS nu se schimbă în Faza 6: frontend-ul trimite `Authorization` și `X-Request-Id` și citește `Retry-After`, iar toate trei sunt deja permise/expuse de backend (vezi mai jos și [`../architecture/communication.md`](../architecture/communication.md)).
 

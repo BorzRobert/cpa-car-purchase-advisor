@@ -2,9 +2,16 @@
 
 Consilier personal pentru cumpărarea unei mașini. Un **agent AI** află nevoile cumpărătorului, caută și compară mașini dintr-un catalog propriu, calculează costul total de deținere și explică de ce recomandă ce recomandă. Prețurile și cifrele vin din unelte deterministe din backend, nu din memoria modelului.
 
-**Stadiul actual:** Faza 6 — frontend-ul este conectat la backend: conversațiile, profilul („Nevoile tale”) și lista scurtă vin din backend, iar răspunsurile consilierului curg prin SSE; Next.js nu mai conține cod de server și nu apelează niciun model. Backend-ul Java (`backend/`) este publicat pe Render cu PostgreSQL pe Neon, iar frontend-ul pe Vercel. Redesign-ul, ghidul și întărirea pentru producție vin în fazele următoare. Planul complet este în [docs/plan.md](docs/plan.md), iar cerințele în [docs/requirements.md](docs/requirements.md).
+**Stadiul actual:** Faza 9 — aplicația este în producție. Frontend-ul (Next.js, doar UI) rulează pe Vercel și vorbește cu backend-ul Java de pe Render (PostgreSQL pe Neon), singurul loc care apelează modelul OpenAI. Planul complet este în [docs/plan.md](docs/plan.md), iar cerințele în [docs/requirements.md](docs/requirements.md).
 
-**Aplicația publicată:** URL-urile se completează după primul deploy (Faza 3); pașii sunt în [docs/render/README.md](docs/render/README.md), [docs/neon/README.md](docs/neon/README.md) și [docs/vercel/README.md](docs/vercel/README.md).
+**Aplicația publicată:**
+
+| Serviciu           | URL                                                                                              |
+| ------------------ | ------------------------------------------------------------------------------------------------ |
+| Aplicația (Vercel) | <https://cpa-car-purchase-advisor-borzrobert.vercel.app/>                                        |
+| API (Render)       | <https://cpa-car-purchase-advisor.onrender.com/api/v1/health> (stare; backend-ul de pe planul Free adoarme, prima cerere poate dura ~1 minut) |
+
+Un scenariu de prezentare verificat pe producție este în [docs/demo-prompt.txt](docs/demo-prompt.txt). Pașii de configurare a gazdelor: [docs/render/README.md](docs/render/README.md), [docs/neon/README.md](docs/neon/README.md), [docs/vercel/README.md](docs/vercel/README.md).
 
 ## Structura repo-ului
 
@@ -36,7 +43,7 @@ Fără `OPENAI_API_KEY` totul pornește, iar consilierul arată starea „neacti
 | `npm run dev`            | server de dezvoltare (Turbopack)                          |
 | `npm run build`          | build de producție                                        |
 | `npm run lint`           | ESLint                                                    |
-| `npm test`               | teste Vitest (parserul SSE, transformările mesajelor)     |
+| `npm test`               | teste Vitest (logică pură: parser SSE, transformări, registre) |
 | `npm run api:types`      | regenerează `src/lib/api/schema.d.ts` din `docs/architecture/openapi.json` |
 | `npm run format`         | formatează tot proiectul cu Prettier                      |
 | `npm run format:check`   | verifică formatarea fără să modifice (varianta pentru CI) |
@@ -70,7 +77,9 @@ git config core.hooksPath scripts/hooks
 | ---------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | [docs/requirements.md](docs/requirements.md)         | **Sursa de adevăr:** ce construim, faze, cerințe non-funcționale, non-scop                                                                               |
 | [docs/plan.md](docs/plan.md)                         | Planul de transformare și de execuție (în engleză)                                                                                                       |
-| [docs/adr/](docs/adr/)                               | Deciziile de arhitectură D1–D9                                                                                                                           |
+| [docs/adr/](docs/adr/)                               | Deciziile de arhitectură D1–D9 (plus ADR 0010)                                                                                                           |
+| [docs/architecture/](docs/architecture/)             | Backend, frontend, contractul frontend ↔ backend, instantaneul OpenAPI                                                                                    |
+| [docs/demo-prompt.txt](docs/demo-prompt.txt)         | Scenariul de demo (4 mesaje) verificat pe producție                                                                                                      |
 | [docs/README.md](docs/README.md)                     | Indexul documentației + tabelul integrărilor externe                                                                                                     |
 | [docs/_template/README.md](docs/_template/README.md) | Formatul obligatoriu pentru documentația unei integrări                                                                                                  |
 | [AGENTS.md](AGENTS.md)                               | Convențiile pentru agenții AI. Fișier canonic — `CLAUDE.md` și `.github/copilot-instructions.md` se generează cu `sh scripts/sync-agent-instructions.sh` |

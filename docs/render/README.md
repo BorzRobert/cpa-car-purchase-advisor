@@ -26,7 +26,7 @@ Toate se setează în **Render → serviciul `cpa-backend` → Environment**. Ni
 | `CORS_ALLOWED_ORIGINS`       | originile frontend-ului, separate prin virgulă, fără `*` — vezi [`../vercel/README.md`](../vercel/README.md) | `sync: false`      |
 | `OPENAI_API_KEY`             | **substituent** `your_openai_api_key` până în Faza 5/9; cheia reală se pune doar aici, în dashboard      | `sync: false`           |
 | `CPA_LLM_MODEL`              | opțională; implicit `gpt-5.6-terra` (ADR 0010). Dacă ai setat deja `gpt-5-mini` în dashboard, șterge sau schimbă valoarea (modelul se oprește la 2026-12-11), vezi [`../openai/README.md`](../openai/README.md) | `sync: false` |
-| `CPA_TRUSTED_PROXY_HOPS`     | opțională; implicit `1` în profilul `prod` (ultima intrare din `X-Forwarded-For`). Se setează doar dacă verificarea din Faza 9 arată altceva | nu apare |
+| `CPA_TRUSTED_PROXY_HOPS`     | opțională; implicit `1` în profilul `prod` (ultima intrare din `X-Forwarded-For`). Se setează doar dacă o verificare pe instanța reală arată altceva | nu apare |
 
 `PORT` nu se setează: Render îl injectează (implicit `10000`), iar `Dockerfile` îl citește (`-Dserver.port=${PORT:-8080}`). Verificat local cu `PORT=10000`.
 
@@ -78,7 +78,7 @@ Ce contează pentru CPA:
 
 | Dată | Build (min) | Cold start (s) | Observații |
 | ---- | ----------- | -------------- | ---------- |
-| —    | —           | —              | Netrecută: nu s-a putut obține un serviciu adormit. Imaginea `eclipse-temurin:25-jre` din `backend/Dockerfile` nu a fost modificată pentru Render, iar serviciul răspunde `200` (`version` `0.0.1-SNAPSHOT`); **jurnalul de build din Render nu a fost văzut**, deci confirmarea explicită rămâne de făcut |
+| 2026-11-12 | — | — | Producție verificată: `https://cpa-car-purchase-advisor.onrender.com` răspunde `200` pe `/api/v1/health` (`advisorConfigured: true`), `/v3/api-docs` dă `404`, CORS acceptă originea Vercel de producție (`access-control-allow-origin`) și refuză o origine străină (`403`). Cold start tot nemăsurat (serviciul era treaz); jurnalul de build din Render nu a fost văzut |
 
 ## Verificare
 

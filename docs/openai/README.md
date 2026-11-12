@@ -52,7 +52,7 @@ Verificat la **2026-11-11** pe [modele](https://developers.openai.com/api/docs/m
 | `gpt-5-mini`     | $0,25 / $0,025 / $2   | **Deprecated, oprire 2026-12-11** (înlocuitor recomandat: `gpt-5.6-terra`)                                     |
 
 - Un răspuns tipic (~6.000 de tokeni de intrare, ~600 de ieșire) costă ≈ $0,019 cu `gpt-5.6-terra`; bugetul zilnic pe sesiune (60.000 de tokeni) și cel global rămân plafonul de cheltuială. Costul real al unui răspuns este scris în jurnal din Faza 5.
-- Compatibilitatea cu Spring AI 2.0.2 este dedusă din documentația OpenAI, **nu încă testată cu o cheie reală**; se verifică la prima rulare (vezi „Verificare”). Schimbarea tehnică a modelului este o singură variabilă (`CPA_LLM_MODEL`); schimbarea deciziei cere un ADR nou.
+- Compatibilitatea cu Spring AI 2.0.2 a fost **verificată pe producție la 2026-11-12** (vezi „Verificare”): `gpt-5.6-terra` prin Chat Completions funcționează cu streaming, raportarea consumului și apelarea de unelte. Schimbarea tehnică a modelului este o singură variabilă (`CPA_LLM_MODEL`); schimbarea deciziei cere un ADR nou.
 - Nu există utilizare gratuită garantată; limitele (rate limits, `429`) depind de cont, proiect și nivel de utilizare.
 - Ce umflă factura: istoricul conversației și promptul de sistem se retrimit la fiecare mesaj; de aceea backend-ul are limită de rată, buget zilnic cu întrerupător global, lungime maximă a promptului și `max_output_tokens`.
 
@@ -76,3 +76,5 @@ curl -N -X POST -H "Authorization: Bearer $TOKEN" -H "Content-Type: application/
 ```
 
 Rezultat așteptat: evenimente `meta`, apoi `token` (text în română), apoi `done` cu `usage` nenul; în jurnalul backend-ului apare o linie `Advisor answer: model=gpt-5.6-terra … inputTokens=… outputTokens=… costUsd=…` cu `estimated=false`. Dacă în loc de asta apare `event: error`, cauza exactă nu este în răspuns (intenționat): vezi jurnalul (`Model call failed: <tip de excepție>`). Aceasta este și verificarea ipotezelor din [ADR 0010](../adr/0010-model-openai-inlocuitor-gpt-5-mini.md): `gpt-5.6-terra` prin Chat Completions, cu `max_completion_tokens` și raportarea consumului în flux.
+
+**Rezultat pe producție (2026-11-12):** `advisorConfigured: true`; scenariul din [`../demo-prompt.txt`](../demo-prompt.txt) (profil, clasament, TCO, listă scurtă, finanțare) a rulat de două ori pe backend-ul de pe Render, cu `done` la fiecare mesaj și uneltele așteptate apelate. Un scenariu de 4 mesaje consumă ~60.000 de tokeni de intrare+ieșire, adică tot bugetul zilnic al unei sesiuni (`cpa.limits.daily-token-budget-per-session`); după el, sesiunea primește `429 budget-exceeded` până la ziua următoare sau până la „Șterge-mi datele”.

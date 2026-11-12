@@ -1,0 +1,68 @@
+DEMO CPA — scenariu de prezentare (4 mesaje)
+=============================================
+
+Verificat pe producție la 2026-11-12 (backend Render + model real), de două ori, cu același rezultat:
+toate cele 4 mesaje au primit răspuns complet, cu uneltele indicate mai jos.
+Cifrele din răspunsuri vin din catalog (date la 2026-11-11) și din calculatoarele Java, deci sunt
+aceleași la fiecare rulare. Textul explicativ al modelului poate varia puțin.
+
+
+ÎNAINTE DE DEMO
+---------------
+1. Pornește dintr-o sesiune curată: Ghid -> „Șterge-mi datele” (sau o fereastră Incognito). Fiecare sesiune are
+   un buget zilnic de 60.000 de tokeni; scenariul de mai jos consumă ~60.000, deci încape într-o singură
+   sesiune, dar NU adăuga mesaje în plus în aceeași sesiune (după al 4-lea mesaj bugetul e epuizat și
+   apare mesajul „buget depășit”). Pentru un al doilea demo la rând folosește iar „Șterge-mi datele”.
+2. Dacă backend-ul doarme, sidebar-ul arată „Se trezește consilierul…” (până la ~1 minut). Deschide aplicația
+   cu 2 minute înainte și așteaptă „Backend conectat”.
+3. Trimite mesajele pe rând și așteaptă să se termine fiecare răspuns înainte de următorul.
+4. Mesajul 1 se lipește în câmpul de scris (nu folosi sugestiile din ecranul de start pentru demo: acelea
+   pornesc conversații deschise, în care consilierul poate cere clarificări).
+
+
+MESAJUL 1 — profil + clasament  (unelte: updateBuyerProfile, rankVehicles)
+---------------------------------------------------------------------------
+Am un buget total de 30.000 €, suntem o familie de 4 persoane, fac aproximativ 15.000 km pe an, mai ales în oraș, și nu pot încărca acasă. Nu contează dacă mașina e nouă sau second-hand și nu am cerințe obligatorii sau condiții eliminatorii. Nu-mi pune întrebări: salvează-mi profilul, clasifică variantele din catalog pentru mine și explică-mi pe scurt primele trei.
+
+Ce se vede: profilul se completează în „Nevoile tale”, stepper-ul avansează la „Comparație”, apare
+clasamentul (Renault Clio E-Tech Full Hybrid 160, Dacia Duster Hybrid 140, Ford Puma 1.0 EcoBoost 125 mHEV)
+cu scor pe criterii și costul total curent în panou.
+
+
+MESAJUL 2 — cost total de deținere  (unelte: rankVehicles, calculateTco x2)
+---------------------------------------------------------------------------
+Calculează costul total de deținere pe 5 ani pentru primele două variante din clasament.
+
+Ce se vede: TCO pe 5 ani — Clio: 23.613,25 €; Duster: 24.298,25 € — cu depreciere, energie, asigurare,
+taxă și mentenanță, plus ipotezele folosite.
+
+
+MESAJUL 3 — lista scurtă  (unelte: searchVehicles, addToShortlist)
+------------------------------------------------------------------
+Adaugă în lista scurtă prima variantă din clasament.
+
+Ce se vede: Renault Clio E-Tech Full Hybrid 160 apare în „Lista scurtă” din panou.
+
+
+MESAJUL 4 — rata lunară  (unelte: getShortlist, calculateFinancing)
+-------------------------------------------------------------------
+Cât ar fi rata lunară pentru prima variantă din lista mea scurtă, cu un avans de 20%, pe 5 ani, la o dobândă de 8% pe an?
+
+Ce se vede: avans 5.180 €, sumă finanțată 20.720 €, rată lunară 420,13 €, dobândă totală 4.487,80 €.
+
+
+CE SĂ SPUI ÎN TIMPUL DEMO-ULUI
+------------------------------
+- Prețurile și costurile nu vin din memoria modelului, ci din unelte deterministe din backend; fiecare preț
+  are „date la” lângă el.
+- Cheia OpenAI există doar în backend (Render); browserul vorbește doar cu API-ul propriu.
+- Consilierul nu repetă întrebări și își ține minte profilul (panoul „Nevoile tale”).
+
+
+DE EVITAT ÎN DEMO (cunoscut, nu e o defecțiune a demo-ului)
+-----------------------------------------------------------
+- „Compară un Golf, un Corolla și un Octavia”: catalogul se caută după tip/motorizare/preț, nu după nume,
+  iar căutarea întoarce cele mai ieftine variante, deci modelul poate să nu găsească Golf sau Octavia.
+  Folosește clasamentul (mesajul 1).
+- Cardurile și comparația dispar la reîncărcarea paginii (backend-ul salvează doar textul).
+- Mesaje foarte deschise („ce îmi recomanzi?”) pot primi întrebări de clarificare în loc de rezultate.
