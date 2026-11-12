@@ -1,6 +1,6 @@
 # Frontend — arhitectură
 
-> Stadiu: **început în Faza 7, extins în Faza 8**; Faza 9 îl finalizează (deploy, verificări pe producție). Sursa de adevăr pentru ce construim rămâne [`../requirements.md`](../requirements.md); contractul cu backend-ul este în [`communication.md`](communication.md).
+> Stadiu: **final (Faza 9)** — frontend-ul rulează în producție pe Vercel și vorbește cu backend-ul de pe Render. Sursa de adevăr pentru ce construim rămâne [`../requirements.md`](../requirements.md); contractul cu backend-ul este în [`communication.md`](communication.md).
 
 ## Rolul frontend-ului
 
@@ -55,6 +55,7 @@ Ce arată panoul și de unde își ia datele:
 
 - **Registrul** `lib/guide.ts` descrie secțiunile ghidului (blocuri de tip `text`, `prompts`, `glossary`, `delete-data`), exemplele de întrebări (cu etapa lor) și pașii dialogului de bun venit. Tipul blocului alege componenta printr-un registru în `guide-dialog.tsx`.
 - **Puncte de intrare:** „Ghid” din sidebar, tasta `?` (ignorată în câmpuri de text și când e deschis alt dialog) și dialogul de bun venit la prima vizită.
+- **Aspectul dialogului:** cele șapte file nu încap pe un rând, deci de la 768 px stau într-o coloană verticală lângă conținut (`Tabs` cu `orientation="vertical"`), iar pe telefon într-o grilă cu două coloane, ca să se vadă toate fără derulare orizontală. Doar conținutul se derulează.
 - **Dialogul de bun venit** apare o singură dată; marcajul `onboardingSeen` stă în `cpa-app` și se citește abia după rehidratarea store-ului. Orice închidere îl marchează ca văzut.
 - **Exemple care completează câmpul de scris:** ghidul pune textul în `pendingPrompt` din store, iar `Chat` îl preia (nu se trimite singur).
 - **Glosar:** TCO, DAE (APR), depreciere, valoare reziduală — un singur registru, afișat ca tooltip (`GlossaryTerm`) și ca tab.
@@ -77,6 +78,10 @@ Ce arată panoul și de unde își ia datele:
 - Verificare manuală cu backend-ul local (`docker compose up --build`) și un server de test care simulează SSE-ul când nu există cheie OpenAI: evenimentele `vehicles`, `compare`, `tool`, `token`, flux incomplet și starea `503 advisor-not-configured` (cea din urmă vine de la backend-ul real).
 - Verificări de accesibilitate: axe-core pe ecranul de start, conversație cu comparație, ghid și foaia mobilă (temă închisă și deschisă); Lighthouse pe build-ul de producție; fără derulare orizontală la 360 și 390 px.
 
-## De finalizat în Faza 9
+## Producție (Faza 9)
 
-Verificări pe producție (Vercel + Render), măsurarea cold start-ului pe dispozitiv real, auditul de curățenie al dependențelor (`knip`/`depcheck`), CORS pentru domeniul final.
+- **Gazdă:** Vercel, directorul rădăcină `frontend`; singura variabilă este `NEXT_PUBLIC_API_BASE_URL` (URL-ul public al backend-ului, fără `/` final), copiată în build — orice schimbare cere Redeploy. Pașii: [`../vercel/README.md`](../vercel/README.md). URL-urile publice sunt în [`../../README.md`](../../README.md).
+- **CORS:** backend-ul acceptă doar originea Vercel de producție; de pe `localhost` cererile către backend-ul de producție sunt refuzate, deci dezvoltarea locală folosește backend-ul local (`docker compose up --build`).
+- **Cold start:** la încărcare se trimite un ping la `/actuator/health`; cât backend-ul doarme, sidebar-ul arată „Se trezește consilierul…” și reîncearcă ~2,5 minute. Durata reală a trezirii nu a fost încă măsurată (vezi [`../render/README.md`](../render/README.md#observat-pe-render)).
+- **Buget:** o sesiune are 60.000 de tokeni pe zi; un scenariu complet (profil, clasament, TCO, listă scurtă, finanțare) îl consumă aproape integral. Când se epuizează, UI-ul arată starea `budget-exceeded`; „Șterge-mi datele” pornește o sesiune nouă. Scenariul de demo verificat: [`../demo-prompt.txt`](../demo-prompt.txt).
+- **Audit de dependențe (`knip`, `depcheck`):** niciun fișier orfan și nicio dependență neutilizată. `knip` raportează doar exporturi nefolosite din `src/components/ui/` (componentele shadcn generate, care nu se editează de mână); `depcheck` raportează fals `shadcn`, `tw-animate-css`, `tailwindcss`, `@tailwindcss/postcss`, `prettier-plugin-tailwindcss` și `@types/react-dom`, folosite din `globals.css`, `postcss.config.mjs`, `.prettierrc` și tipurile ambientale. Nu sunt instrumente adăugate în proiect (rulate cu `npx`).

@@ -10,7 +10,9 @@
 
 [`architecture/communication.md`](architecture/communication.md) — contractul frontend ↔ backend: sesiune, endpoint-uri, erori, limite, SSE (implementat, consumat de frontend din Faza 6). [`architecture/openapi.json`](architecture/openapi.json) — instantaneul OpenAPI, verificat în CI; din el se generează tipurile frontend-ului (`npm run api:types`).
 
-[`architecture/frontend.md`](architecture/frontend.md) — cum este construit frontend-ul: structura, tokenii de design, panoul lateral și componentele, ghidul din aplicație, starea, accesibilitatea și cum se verifică (început în Faza 7; se finalizează în Faza 9).
+[`architecture/frontend.md`](architecture/frontend.md) — cum este construit frontend-ul: structura, tokenii de design, panoul lateral și componentele, ghidul din aplicație, starea, accesibilitatea, producția și cum se verifică.
+
+[`demo-prompt.txt`](demo-prompt.txt) — scenariul de prezentare (4 mesaje), verificat pe producție, cu ce se vede la fiecare pas și ce să eviți.
 
 Când se schimbă ceva pe drum, se actualizează în `requirements.md`, nu doar în conversație.
 
