@@ -25,7 +25,7 @@
 
 ### Piață, monedă, limbă
 
-România/UE, prețuri în EUR (cu conversie în RON), interfața și `docs/` în română, codul și commit-urile în engleză ([ADR 0001](adr/0001-piata-moneda-limba.md)).
+România/UE, prețuri în EUR (cu conversie în RON). Codul, comentariile, commit-urile și `docs/` sunt în engleză; interfața este în română (implicit) și în engleză, cu comutator în Preferințe → General ([ADR 0001](adr/0001-piata-moneda-limba.md), înlocuit parțial de [ADR 0011](adr/0011-limba-engleza-si-i18n.md)).
 
 ---
 
@@ -33,7 +33,7 @@ România/UE, prețuri în EUR (cu conversie în RON), interfața și `docs/` în
 
 - **`frontend/`** — Next.js 16 + React 19 + TypeScript + Tailwind v4 + shadcn/ui, folosit **doar ca UI**: fără Route Handlers, fără chei, doar `NEXT_PUBLIC_API_BASE_URL`.
 - **`backend/`** — Java 25 + Spring Boot 4.1.2 (Maven Wrapper), Spring AI 2.0.2 cu un singur model OpenAI, JPA + Flyway, PostgreSQL în producție și H2 local. Deține toată logica de produs: persona, uneltele, scoring-ul, TCO, memoria, limitele de rată și bugetul, persistența. Aplicația pornește și fără `OPENAI_API_KEY` (consilierul răspunde `503 advisor-not-configured`).
-- **Comunicare:** REST/JSON sub `/api/v1` și un endpoint SSE pentru răspunsuri în streaming; identitate prin token de sesiune anonim (`Authorization: Bearer`); contract definit prima dată (OpenAPI), tipurile TypeScript se generează din el.
+- **Comunicare:** REST/JSON sub `/api/v1` și un endpoint SSE pentru răspunsuri în streaming; identitate delegată unui furnizor terț de autentificare (Google, GitHub etc.), cu token anonim de sesiune păstrat pentru invitați (`Authorization: Bearer`); contract definit prima dată (OpenAPI), tipurile TypeScript se generează din el.
 - **Hosting:** frontend pe Vercel, backend pe Render (Docker, plan Free), bază de date pe Neon (Free). Backend-ul rulează în producție cu profilul Spring `prod` (baza din mediu, Swagger/OpenAPI oprite, pool reglat pentru Neon); migrările Flyway rulează la pornire pe H2 și pe PostgreSQL. CORS: listă explicită de origini (producția Vercel + aliasul stabil al branch-ului testat), fără `*` — vezi [`vercel/README.md`](vercel/README.md).
 
 Detaliile (diagrame, evenimente SSE, straturi) sunt în `plan.md` §2; backend-ul așa cum este construit acum e descris în [`architecture/backend.md`](architecture/backend.md), contractul frontend ↔ backend în [`architecture/communication.md`](architecture/communication.md) (cu instantaneul OpenAPI [`architecture/openapi.json`](architecture/openapi.json)), iar integrările în [`render/`](render/README.md), [`neon/`](neon/README.md) și [`vercel/`](vercel/README.md); restul ajunge în `docs/architecture/` pe măsură ce fazele se livrează.
@@ -66,6 +66,7 @@ Detaliile (diagrame, evenimente SSE, straturi) sunt în `plan.md` §2; backend-u
 | 7    | Redesign și componente specifice (card vehicul, comparație, TCO, panou lateral)            | livrată     |
 | 8    | Ghid în aplicație                                                                          | livrată     |
 | 9    | Întărire, producție, documentație finală, audit de curățenie                               | în curs (în producție; rămân verificarea de pe telefon și cold start-ul) |
+| 10   | Iterația următoare: engleză + i18n RO/EN, login terț cu istoric per utilizator, aspect desktop/mobil, titlu și iconiță, reguli de branch, cercetări — vezi [`next-iteration-requirements.md`](next-iteration-requirements.md) | planificată |
 
 ### Scenarii de acceptare
 
@@ -80,7 +81,7 @@ Detaliile (diagrame, evenimente SSE, straturi) sunt în `plan.md` §2; backend-u
 
 - **Chei:** `OPENAI_API_KEY` există doar în mediul backend-ului; niciodată în browser, în URL, în loguri sau în repo. Fișierele `.env.example` conțin doar valori-substituent.
 - **Un singur model:** configurat într-o singură proprietate de backend (`cpa.llm.model`); fără selector de model în UI sau în cod. Valoarea implicită este `gpt-5.6-terra` ([ADR 0010](adr/0010-model-openai-inlocuitor-gpt-5-mini.md), acceptat la 2026-11-11): `gpt-5-mini` din D7 este deprecat, cu oprire la 2026-12-11. Detalii și prețuri în [`openai/README.md`](openai/README.md).
-- **Date și confidențialitate:** fără cont și fără date personale; token de sesiune stocat doar hash-uit (SHA-256); `DELETE /api/v1/sessions/current` („șterge-mi datele”) șterge în cascadă profilul, conversațiile și lista scurtă (contorii de consum rămân anonimi, ca să nu se poată reseta bugetul); jurnalele nu conțin date personale sau tokenuri. Textul din browser este curățat și limitat la intrare.
+- **Date și confidențialitate:** autentificarea este delegată unui furnizor terț (proiectul nu stochează parole și nu implementează securitate de autentificare); se păstrează doar minimul (identificatorul stabil al utilizatorului la furnizor, opțional nume/avatar), iar fiecare utilizator autentificat își vede doar istoricul propriu; invitații folosesc un token de sesiune stocat doar hash-uit (SHA-256); `DELETE /api/v1/sessions/current` („șterge-mi datele”) șterge în cascadă profilul, conversațiile și lista scurtă (contorii de consum rămân anonimi, ca să nu se poată reseta bugetul); jurnalele nu conțin date personale sau tokenuri. Textul din browser este curățat și limitat la intrare.
 - **Cost:** limită de rată pe sesiune și IP, buget zilnic de tokeni pe sesiune și global (întrerupătorul global este bugetul global), lungime maximă a mesajului (4000 de caractere), plafoane de volum (conversații, mesaje, lista scurtă) — toate implementate în Faza 4 și testate; din Faza 5a `max_completion_tokens` (`cpa.llm.max-output-tokens`) plafonează un răspuns, iar tokenii reali se înregistrează după fiecare răspuns. Limitele de rată sunt în memorie, per instanță (o singură instanță pe planul Free); verificarea adresei IP în spatele proxy-ului Render nu a fost confirmată pe instanța reală (`CPA_TRUSTED_PROXY_HOPS` o corectează fără cod). Bugetul pe sesiune (60.000 de tokeni pe zi) acoperă un scenariu de ~4 mesaje cu unelte (~15.000 de tokeni pe mesaj).
 - **Corectitudine:** prețurile, specificațiile și costurile vin doar din unelte deterministe; răspunsurile le marchează ca orientative, cu data „date la”.
 - **Disponibilitate:** planul gratuit adoarme (Render după 15 minute fără trafic, ~1 minut pentru trezire + pornirea JVM; Neon după 5 minute, trezire în sute de ms); interfața pornește un ping la `/actuator/health` la încărcare și afișează „Se trezește consilierul…” în loc de eroare, reîncercând timp de ~2,5 minute. `/actuator/health` nu interoghează baza, ca să nu țină Neon treaz și să nu consume cota gratuită. Durata reală a cold start-ului este documentată în [`render/README.md`](render/README.md).
@@ -92,8 +93,6 @@ Detaliile (diagrame, evenimente SSE, straturi) sunt în `plan.md` §2; backend-u
 ## 5. Non-scop (amânat, nu uitat)
 
 - RAG peste un ghid de cumpărare (pgvector).
-- Autentificare opțională (GitHub/Google) pentru istoric între dispozitive.
-- i18n RO/EN.
 - Date live (rechemări, prețul combustibilului) cu cache.
 - Comutator de provider LLM (se folosește un singur model, [ADR 0007](adr/0007-model-openai.md)).
 

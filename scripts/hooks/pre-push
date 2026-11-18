@@ -1,0 +1,19 @@
+#!/bin/sh
+# Rejects pushing a branch whose name is not `CPA-<issue number>-<kebab-message>` (rules live in
+# scripts/check-naming.sh). Git has no hook for branch creation, so the push is the earliest checkpoint.
+# Activation: git config core.hooksPath scripts/hooks
+
+status=0
+while read -r local_ref local_sha remote_ref remote_sha; do
+  case "$remote_ref" in
+    refs/heads/*) ;;
+    *) continue ;;
+  esac
+  # An all-zero local sha means the branch is being deleted: nothing to validate.
+  case "$local_sha" in
+    *[!0]*) ;;
+    *) continue ;;
+  esac
+  sh "$(dirname "$0")/../check-naming.sh" branch "${remote_ref#refs/heads/}" || status=1
+done
+exit $status

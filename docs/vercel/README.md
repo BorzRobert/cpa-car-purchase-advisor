@@ -19,7 +19,7 @@ Găzduiește frontend-ul CPA online: construiește proiectul Next.js din `fronte
 2. Local, în rădăcina repo-ului:
    ```bash
    git add .
-   git commit -m "CPA-<titlu-kebab>"
+   git commit -m "CPA-<număr issue> <mesaj>"
    git remote add origin git@github.com:<utilizator>/<repo>.git
    git push -u origin main
    ```

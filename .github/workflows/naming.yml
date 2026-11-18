@@ -1,0 +1,52 @@
+# Server-side enforcement of the naming rules: local hooks can be skipped (`--no-verify`) or never activated.
+# No `paths` filter on purpose: this must report on every PR so it can be a required status check.
+# Rules live in scripts/check-naming.sh, shared with the local hooks.
+name: naming
+
+on:
+  pull_request:
+    types: [opened, edited, synchronize, reopened]
+
+permissions:
+  contents: read
+
+jobs:
+  naming:
+    runs-on: ubuntu-latest
+    # Branch name and PR title are attacker-controlled: they go through env vars, never inline in the script.
+    env:
+      HEAD_REF: ${{ github.head_ref }}
+      PR_TITLE: ${{ github.event.pull_request.title }}
+      BASE_SHA: ${{ github.event.pull_request.base.sha }}
+      HEAD_SHA: ${{ github.event.pull_request.head.sha }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Check branch name, PR title and commits
+        run: |
+          set -eu
+          check="sh scripts/check-naming.sh"
+
+          $check branch "$HEAD_REF"
+          # A squash merge uses the PR title as the commit message on main.
+          $check message "$PR_TITLE"
+
+          id=$($check id "$HEAD_REF")
+          if [ "$($check id "$PR_TITLE")" != "$id" ]; then
+            echo "PR title must reference the same issue as the branch (CPA-$id)" >&2
+            exit 1
+          fi
+
+          status=0
+          git log --no-merges --format=%s "$BASE_SHA..$HEAD_SHA" > /tmp/subjects.txt
+          while IFS= read -r subject; do
+            $check message "$subject" || { status=1; continue; }
+            case "$subject" in Revert\ *) continue ;; esac
+            if [ "$($check id "$subject")" != "$id" ]; then
+              echo "Commit '$subject' must reference the same issue as the branch (CPA-$id)" >&2
+              status=1
+            fi
+          done < /tmp/subjects.txt
+          exit $status

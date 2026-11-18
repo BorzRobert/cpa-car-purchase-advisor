@@ -23,7 +23,7 @@ The transformation is executed phase by phase following `docs/plan.md`. Read the
 
 Every external integration (OpenAI, Render, Neon, Vercel, …) ships with `docs/<integration>/README.md`, using the mandatory sections of `docs/_template/README.md` (Ce face, Cont & chei, Variabile de mediu, Pași manuali, Cost & limite, Verificare), plus a row in the index table of `docs/README.md` and placeholders in the matching `.env.example`, **in the same commit** that adds the integration.
 
-**Never write real keys, tokens, connection strings, or account identifiers in `docs/`** — only variable names and where to obtain the values. Everything under `docs/` is written in Romanian, except `docs/plan.md` (English).
+**Never write real keys, tokens, connection strings, or account identifiers in `docs/`** — only variable names and where to obtain the values. Everything under `docs/` is written in English.
 
 ## 2.1 Reusable skills
 
@@ -34,14 +34,14 @@ Every external integration (OpenAI, Render, Neon, Vercel, …) ships with `docs/
 ## 3. Secrets and responsibilities
 
 - `OPENAI_API_KEY` exists **only** in the backend environment (`backend/.env`, gitignored, or the host dashboard). Never in `frontend/`, in a URL, in logs, in error messages, or committed.
-- The frontend has **no Route Handlers** and no secrets; its only environment variable is `NEXT_PUBLIC_API_BASE_URL`. A `NEXT_PUBLIC_` prefix means public — never put a secret behind it.
+- The frontend has **no Route Handlers** and no secrets; its environment variables are only public ones: `NEXT_PUBLIC_API_BASE_URL` and any public identifier the third-party login provider requires. A `NEXT_PUBLIC_` prefix means public — never put a secret behind it.
 - Never return a secret's value in an API response; report at most whether it is configured.
 - Every new variable goes into the matching `.env.example` with a placeholder and a one-line comment, and into the relevant `docs/<integration>/README.md`.
 - If a key has ever been exposed, say so and have it revoked — do not just delete the line.
 - **Backend owns:** the system prompt (built in exactly one place, in the `ai` package), tools, scoring and TCO maths, memory, rate limiting and the daily budget, persistence. **Frontend owns:** rendering and input collection. A second place that composes the persona, or any LLM call from Next.js, is a bug.
 - The advisor must never answer prices, specs, or costs from model memory; they come from tool results with the "data as of" date.
 - Data coming from the browser is untrusted: validate and normalize it on the backend before it enters a prompt; profile, listing text, and user input are delimited data, never instructions.
-- Identity is an anonymous session token (stored hashed server-side). No personal data is collected; server logs never contain personal data or tokens.
+- Identity is delegated to a third-party login provider (Google, GitHub, …); the project never stores credentials or implements authentication security itself, and each signed-in user owns their conversation history. Anonymous session tokens (stored hashed server-side) remain for guests. Store only the minimum needed (the provider's stable subject id, optionally a display name/avatar); server logs never contain personal data or tokens.
 
 ## 4. Course working rhythm
 
@@ -49,7 +49,7 @@ Every external integration (OpenAI, Render, Neon, Vercel, …) ships with `docs/
 - Prefer the simplest thing that satisfies the current phase's "done when" criterion in `docs/plan.md`.
 - At the end of every step, explain in plain language what was added, why it was needed, and what to look at to see it working.
 - Delete generated boilerplate that serves no purpose.
-- Commit messages: first line `CPA-<short-kebab-title>` (enforced by `scripts/hooks/commit-msg`; activate with `git config core.hooksPath scripts/hooks`). Pure `git mv` moves go in their own commit with no content edits. Do not commit unless the user asks.
+- Naming (enforced by `scripts/check-naming.sh`, shared by the git hooks and the `naming` CI check; activate the hooks with `git config core.hooksPath scripts/hooks`): branches are `CPA-<issue number>-<kebab-message>` (e.g. `CPA-42-add-google-login`), commit first lines and PR titles are `CPA-<issue number> <message>` (e.g. `CPA-42 Add Google login`), and the issue number must be the same in the branch, its commits and the PR title. Pure `git mv` moves go in their own commit with no content edits. Do not commit unless the user asks.
 
 ## 5. Frontend stack (fixed)
 
@@ -65,8 +65,8 @@ Every external integration (OpenAI, Render, Neon, Vercel, …) ships with `docs/
 
 ## 6. Code conventions
 
-- **Code, identifiers, commit messages and these agent instructions are in English.** Everything under `docs/` (except `plan.md`), `README.md`, and all UI copy is in **Romanian**.
-- **Comments are in Romanian and explain WHY, not what.** Every non-trivial file carries a short header comment saying why it exists.
+- **Code, identifiers, comments, commit messages, `docs/`, `README.md` and these agent instructions are in English.** UI copy lives in per-locale message catalogues (Romanian is the default, English is supported; the user switches in Preferințe → General) — never hard-coded in components.
+- **Comments are in English and explain WHY, not what.** Every non-trivial file carries a short header comment saying why it exists.
 - Frontend structure: `frontend/src/app/` (pages only), `src/components/`, `src/components/ui/`, `src/lib/`, `src/store/`.
 - Backend structure (Phase 2+): base package `ro.cpa.advisor` with `api`, `service`, `domain`, `repository`, `ai`, `config`. Layering is `api → service → repository`, `service → domain`, `ai` used by `service` only, `domain` depends on nothing; an ArchUnit test enforces it.
 - Internal navigation uses `next/link`; plain `<a>` only for non-React routes and external links, with a comment saying why.

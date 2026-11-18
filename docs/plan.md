@@ -309,8 +309,8 @@ Docs are written alongside each phase, not postponed to the end; Phase 9 only po
 
 ## 8. Git conventions
 
-- Commit format: **`CPA-<short-kebab-title>`**, e.g. `CPA-added-backend-service`, `CPA-moved-frontend-to-subfolder`, `CPA-removed-legacy-code`. Enforced by a versioned `commit-msg` hook in `scripts/hooks/` (activated with `git config core.hooksPath scripts/hooks`) and a CI check on PR commits.
-- One branch per phase (`cpa/phase-3-domain`, …) merged into `main` through a PR so Vercel/Render previews and CI run before `main` changes; small, single-purpose commits inside the branch.
+- Naming (from Phase 10 on; earlier history keeps `CPA-<short-kebab-title>`): branches `CPA-<issue number>-<kebab-message>`, commits and PR titles `CPA-<issue number> <message>`, e.g. `CPA-42-add-google-login` and `CPA-42 Add Google login`. Enforced by `scripts/check-naming.sh`, used by the versioned `commit-msg` and `pre-push` hooks in `scripts/hooks/` (activated with `git config core.hooksPath scripts/hooks`) and by the `naming` CI check (`.github/workflows/naming.yml`), which should be a required status check on `main`.
+- One branch per issue, merged into `main` through a PR so Vercel/Render previews and CI run before `main` changes; small, single-purpose commits inside the branch.
 - Pure moves (`git mv`) go in their own commit with no content edits to keep history and blame intact.
 - `main` must stay deployable: dead code that the old UI still imports is removed only after its replacement exists (see Phase 1 vs Phase 6).
 

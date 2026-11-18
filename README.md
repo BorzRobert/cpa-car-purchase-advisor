@@ -63,9 +63,9 @@ Pornește și fără cheie OpenAI. Variabilele sunt în `backend/.env.example` (
 | `./mvnw spring-boot:run`                   | pornește serviciul local (H2 în memorie)                          |
 | `docker build -t cpa-backend backend`      | construiește imaginea Docker                                      |
 
-## Convenția de commit
+## Convenția de nume
 
-Prima linie a fiecărui commit este `CPA-<titlu-kebab>`, de exemplu `CPA-added-backend-service`. Hook-ul din `scripts/hooks/` o verifică; se activează o singură dată cu:
+Din Faza 10, ramurile se numesc `CPA-<număr issue>-<mesaj-kebab>` (de exemplu `CPA-42-add-google-login`), iar prima linie a fiecărui commit și titlul PR-ului sunt `CPA-<număr issue> <mesaj>` (de exemplu `CPA-42 Add Google login`); numărul de issue este același în ramură, commit-uri și titlul PR-ului. Regulile sunt în `scripts/check-naming.sh`; hook-urile din `scripts/hooks/` le verifică local, iar verificarea CI `naming` le impune pe PR. Hook-urile se activează o singură dată cu:
 
 ```bash
 git config core.hooksPath scripts/hooks

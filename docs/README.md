@@ -4,7 +4,9 @@
 
 [`requirements.md`](requirements.md) — **sursa de adevăr**: ce este aplicația și pentru cine, arhitectura pe scurt, fazele, cerințele non-funcționale și non-scopul.
 
-[`plan.md`](plan.md) — planul de transformare și de execuție, pe faze (în engleză). [`adr/`](adr/) — câte o notă scurtă pentru fiecare decizie D1–D9 (plus ADR 0010, care înlocuiește modelul din D7).
+[`plan.md`](plan.md) — planul de transformare și de execuție, pe faze (în engleză). [`adr/`](adr/) — câte o notă scurtă pentru fiecare decizie D1–D9 (plus ADR 0010, care înlocuiește modelul din D7, și ADR 0011, care înlocuiește regula limbilor din ADR 0001).
+
+[`next-iteration-requirements.md`](next-iteration-requirements.md) — propunere (neacceptată încă, în engleză): cerințele pentru următoarea iterație, ca intrare pentru un plan de implementare.
 
 [`architecture/backend.md`](architecture/backend.md) — cum este construit backend-ul: versiuni fixate, straturi, configurare (inclusiv profilul `prod`), baza de date și migrări, limite, securitate, teste, Docker și CI.
 
